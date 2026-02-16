@@ -28,6 +28,7 @@ Python 3 shall be used as the implementation language. Virtual environment (venv
 ```
 
 * The relevant link for the detail page is in the `a` HTML tag, https://oceanofpdf.com/authors/margaret-l-lial/pdf-college-algebra-and-trigonometry-by-margaret-l-lial-download/
+* See also ![book entry](docs/images/book_entry.png)
 
 
 ## Detail page
@@ -38,6 +39,8 @@ Python 3 shall be used as the implementation language. Virtual environment (venv
 
 For the download itself one or two HTML `form` are used. One for PDF and one for the epub version. (Both version shall be download.) Please mind that the form needs to be submitted to be able to download the file because the final URL is dynamically generated on the server side.
 
+See also ![details page buttons](docs/images/details_page_buttons.png)
+
 # Plan
 
 ## Step 1 (requirements)
@@ -46,7 +49,7 @@ Please analyse the above requirements. If you think something is missing, please
 
 ## Step 2 (scrapping)
 
-Let's implement a simple prototype which lists all books with the details (title of the book, URL to the detail page, language and genre) until a given page.
+Let's implement a simple prototype which lists all books with the details (title of the book, URL to the detail page, language and genre) until a given page. However it's possible that genre and language are not there. Just assume "unknown" then.
 
 ## Step 3 (persistence)
 
