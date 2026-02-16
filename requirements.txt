@@ -1,0 +1,4 @@
+playwright
+rich
+loguru
+pytest
