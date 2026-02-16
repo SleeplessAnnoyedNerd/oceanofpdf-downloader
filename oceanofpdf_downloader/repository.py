@@ -60,3 +60,27 @@ class BookRepository:
             return None
         record_row = self._conn.execute("SELECT * FROM books WHERE id = ?", (cursor.lastrowid,)).fetchone()
         return self._row_to_record(record_row)
+
+    def import_books(self, books: list[Book]) -> int:
+        count = 0
+        for book in books:
+            if self.insert_book(book) is not None:
+                count += 1
+        return count
+
+    def get_by_url(self, detail_url: str) -> BookRecord | None:
+        row = self._conn.execute("SELECT * FROM books WHERE detail_url = ?", (detail_url,)).fetchone()
+        if row is None:
+            return None
+        return self._row_to_record(row)
+
+    def get_books_by_state(self, state: BookState) -> list[BookRecord]:
+        rows = self._conn.execute("SELECT * FROM books WHERE state = ?", (state.value,)).fetchall()
+        return [self._row_to_record(row) for row in rows]
+
+    def update_state(self, book_id: int, state: BookState) -> None:
+        self._conn.execute(
+            "UPDATE books SET state = ?, updated_at = datetime('now') WHERE id = ?",
+            (state.value, book_id),
+        )
+        self._conn.commit()
