@@ -65,3 +65,58 @@ def parse_books_from_html(html: str) -> list[Book]:
         ))
 
     return books
+
+
+class BookScraper:
+    """Scrapes book listings from oceanofpdf.com using Playwright."""
+
+    def __init__(self, config: Config) -> None:
+        self.config = config
+        self._playwright = None
+        self._browser = None
+
+    def __enter__(self):
+        self._playwright = sync_playwright().start()
+        self._browser = self._playwright.chromium.launch(headless=self.config.headless)
+        logger.info("Browser launched (headless={})", self.config.headless)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._browser:
+            self._browser.close()
+        if self._playwright:
+            self._playwright.stop()
+        logger.info("Browser closed")
+        return False
+
+    def _get_page_url(self, page_num: int) -> str:
+        if page_num <= 1:
+            return self.config.base_url
+        return f"{self.config.base_url}page/{page_num}/"
+
+    def scrape_listing_page(self, page_num: int) -> list[Book]:
+        """Navigate to a listing page and extract all books."""
+        url = self._get_page_url(page_num)
+        logger.info("Scraping page {} — {}", page_num, url)
+
+        page = self._browser.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded")
+            html = page.content()
+            books = parse_books_from_html(html)
+            logger.info("Found {} books on page {}", len(books), page_num)
+            return books
+        finally:
+            page.close()
+
+    def scrape_all_pages(self) -> list[Book]:
+        """Scrape all listing pages up to max_pages."""
+        all_books: list[Book] = []
+        for page_num in range(1, self.config.max_pages + 1):
+            books = self.scrape_listing_page(page_num)
+            all_books.extend(books)
+            if page_num < self.config.max_pages:
+                logger.info("Pausing {} seconds before next page...", self.config.pause_seconds)
+                time.sleep(self.config.pause_seconds)
+        logger.info("Total books found: {}", len(all_books))
+        return all_books

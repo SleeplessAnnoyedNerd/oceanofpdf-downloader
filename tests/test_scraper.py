@@ -74,3 +74,20 @@ EMPTY_HTML = "<html><body><p>No books here</p></body></html>"
 def test_parse_empty_page():
     books = parse_books_from_html(EMPTY_HTML)
     assert books == []
+
+
+from oceanofpdf_downloader.scraper import BookScraper
+from oceanofpdf_downloader.config import Config
+
+
+def test_get_page_url_first():
+    config = Config(max_pages=1)
+    scraper = BookScraper(config)
+    assert scraper._get_page_url(1) == "https://oceanofpdf.com/recently-added/"
+
+
+def test_get_page_url_subsequent():
+    config = Config(max_pages=3)
+    scraper = BookScraper(config)
+    assert scraper._get_page_url(2) == "https://oceanofpdf.com/recently-added/page/2/"
+    assert scraper._get_page_url(3) == "https://oceanofpdf.com/recently-added/page/3/"
