@@ -9,24 +9,24 @@ def _book(title="Book A", genre="Fiction"):
 
 
 class TestIsBlacklisted:
-    @patch("oceanofpdf_downloader.filters.TITLE_BLACKLIST", ["romance"])
+    @patch("oceanofpdf_downloader.filters._title_blacklist", ["romance"])
     def test_matches_title(self):
         assert is_blacklisted(_book(title="Dark Romance Novel")) is True
 
-    @patch("oceanofpdf_downloader.filters.GENRE_BLACKLIST", ["thriller"])
+    @patch("oceanofpdf_downloader.filters._genre_blacklist", ["thriller"])
     def test_matches_genre(self):
         assert is_blacklisted(_book(genre="Mystery, Thriller")) is True
 
-    @patch("oceanofpdf_downloader.filters.TITLE_BLACKLIST", ["ROMANCE"])
+    @patch("oceanofpdf_downloader.filters._title_blacklist", ["ROMANCE"])
     def test_case_insensitive_title(self):
         assert is_blacklisted(_book(title="a romance story")) is True
 
-    @patch("oceanofpdf_downloader.filters.GENRE_BLACKLIST", ["Thriller"])
+    @patch("oceanofpdf_downloader.filters._genre_blacklist", ["Thriller"])
     def test_case_insensitive_genre(self):
         assert is_blacklisted(_book(genre="thriller, mystery")) is True
 
-    @patch("oceanofpdf_downloader.filters.TITLE_BLACKLIST", ["romance"])
-    @patch("oceanofpdf_downloader.filters.GENRE_BLACKLIST", ["thriller"])
+    @patch("oceanofpdf_downloader.filters._title_blacklist", ["romance"])
+    @patch("oceanofpdf_downloader.filters._genre_blacklist", ["thriller"])
     def test_no_match(self):
         assert is_blacklisted(_book(title="Math Textbook", genre="Science")) is False
 
@@ -35,7 +35,7 @@ class TestIsBlacklisted:
 
 
 class TestFilterBooks:
-    @patch("oceanofpdf_downloader.filters.TITLE_BLACKLIST", ["romance"])
+    @patch("oceanofpdf_downloader.filters._title_blacklist", ["romance"])
     def test_filters_out_blacklisted(self):
         books = [
             _book(title="Romance Novel"),
