@@ -5,8 +5,8 @@ from oceanofpdf_downloader.browser import BrowserSession
 from oceanofpdf_downloader.config import Config
 from oceanofpdf_downloader.display import display_book_records
 from oceanofpdf_downloader.downloader import BookDownloader
-from oceanofpdf_downloader.filters import filter_books
-from oceanofpdf_downloader.models import BookState
+from oceanofpdf_downloader.filters import filter_books, is_blacklisted
+from oceanofpdf_downloader.models import Book, BookState
 from oceanofpdf_downloader.repository import BookRepository
 from oceanofpdf_downloader.scraper import BookScraper
 from oceanofpdf_downloader.selection import select_books
@@ -61,6 +61,19 @@ def main() -> None:
         logger.info("Imported {} new books ({} duplicates skipped)", new_count, len(books) - new_count)
 
         new_books = repo.get_books_by_state(BookState.NEW)
+
+        # Mark blacklisted books
+        blacklisted_count = 0
+        for record in new_books:
+            book = Book(title=record.title, detail_url=record.detail_url,
+                        language=record.language, genre=record.genre)
+            if is_blacklisted(book):
+                repo.update_state(record.id, BookState.BLACKLISTED)
+                blacklisted_count += 1
+        if blacklisted_count:
+            logger.info("{} book(s) blacklisted by filter", blacklisted_count)
+            new_books = repo.get_books_by_state(BookState.NEW)
+
         newly_scheduled = select_books(new_books, repo, console)
 
         all_scheduled = pending + newly_scheduled

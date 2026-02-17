@@ -8,6 +8,7 @@ class BookState(str, Enum):
     SCHEDULED = "scheduled"
     DONE = "done"
     RETRY = "retry"
+    BLACKLISTED = "blacklisted"
 
 
 @dataclass
