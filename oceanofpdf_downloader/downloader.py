@@ -80,7 +80,8 @@ class BookDownloader:
                     save_path = os.path.join(self.config.download_dir, final_name)
 
                     # Find the form's submit button and click it while expecting a download
-                    form_selector = f'form[action*="Fetching_Resource.php"] input[value="{form.server_id}"]'
+                    # Use filename to locate the correct form (server_id can be shared across forms)
+                    form_selector = f'form[action*="Fetching_Resource.php"] input[name="filename"][value="{form.filename}"]'
                     form_element = page.locator(form_selector).first
                     submit_button = form_element.locator("xpath=ancestor::form").locator(
                         'input[type="submit"], input[type="image"], button[type="submit"]'
