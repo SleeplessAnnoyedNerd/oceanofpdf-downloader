@@ -57,9 +57,17 @@ class BrowserSession:
         return False
 
     def new_page(self):
-        """Create a new page with stealth patches applied."""
+        """Create a new page with stealth patches applied and download behavior set."""
         page = self._context.new_page()
         self._stealth.apply_stealth_sync(page)
+
+        # Enable file downloads via CDP — required for headless Chromium
+        cdp = self._context.new_cdp_session(page)
+        cdp.send("Page.setDownloadBehavior", {
+            "behavior": "allow",
+            "downloadPath": self.config.download_dir,
+        })
+
         return page
 
     def navigate(self, page, url: str) -> None:
