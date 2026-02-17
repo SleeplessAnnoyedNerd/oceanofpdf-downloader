@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from oceanofpdf_downloader.filters import filter_books, is_blacklisted
+from oceanofpdf_downloader.filters import filter_books, is_autoselected, is_blacklisted
 from oceanofpdf_downloader.models import Book
 
 
@@ -52,3 +52,25 @@ class TestFilterBooks:
 
     def test_empty_list(self):
         assert filter_books([]) == []
+
+
+class TestIsAutoselected:
+    @patch("oceanofpdf_downloader.filters._title_autoselect", ["algebra"])
+    def test_matches_title(self):
+        assert is_autoselected(_book(title="College Algebra")) is True
+
+    @patch("oceanofpdf_downloader.filters._genre_autoselect", ["textbooks"])
+    def test_matches_genre(self):
+        assert is_autoselected(_book(genre="Mathematics, Textbooks")) is True
+
+    @patch("oceanofpdf_downloader.filters._genre_autoselect", ["TEXTBOOKS"])
+    def test_case_insensitive(self):
+        assert is_autoselected(_book(genre="textbooks, math")) is True
+
+    @patch("oceanofpdf_downloader.filters._title_autoselect", ["algebra"])
+    @patch("oceanofpdf_downloader.filters._genre_autoselect", ["textbooks"])
+    def test_no_match(self):
+        assert is_autoselected(_book(title="Romance Novel", genre="Fiction")) is False
+
+    def test_empty_autoselect(self):
+        assert is_autoselected(_book()) is False

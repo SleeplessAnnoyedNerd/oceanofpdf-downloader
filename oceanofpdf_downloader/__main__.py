@@ -5,7 +5,7 @@ from oceanofpdf_downloader.browser import BrowserSession
 from oceanofpdf_downloader.config import Config
 from oceanofpdf_downloader.display import display_book_records
 from oceanofpdf_downloader.downloader import BookDownloader
-from oceanofpdf_downloader.filters import filter_books, is_blacklisted
+from oceanofpdf_downloader.filters import filter_books, is_autoselected, is_blacklisted
 from oceanofpdf_downloader.models import Book, BookState
 from oceanofpdf_downloader.repository import BookRepository
 from oceanofpdf_downloader.scraper import BookScraper
@@ -76,7 +76,22 @@ def main() -> None:
                 console.print(f"  - {record.title} ({record.genre})")
             new_books = repo.get_books_by_state(BookState.NEW)
 
+        # Auto-schedule matching books
+        autoselected = []
+        for record in new_books:
+            book = Book(title=record.title, detail_url=record.detail_url,
+                        language=record.language, genre=record.genre)
+            if is_autoselected(book):
+                repo.update_state(record.id, BookState.SCHEDULED)
+                autoselected.append(record)
+        if autoselected:
+            logger.info("{} book(s) auto-scheduled by filter", len(autoselected))
+            for record in autoselected:
+                console.print(f"  - {record.title} ({record.genre})")
+            new_books = repo.get_books_by_state(BookState.NEW)
+
         newly_scheduled = select_books(new_books, repo, console)
+        newly_scheduled.extend(autoselected)
 
         all_scheduled = pending + newly_scheduled
         logger.info("{} book(s) scheduled for download.", len(all_scheduled))

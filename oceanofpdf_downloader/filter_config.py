@@ -5,3 +5,12 @@ TITLE_BLACKLIST = []
 # Words to match against book genres (case-insensitive).
 # If any word appears in the genre, the book is blacklisted.
 GENRE_BLACKLIST = []
+
+# Words to match against book titles (case-insensitive).
+# If any word appears in the title, the book is auto-scheduled for download.
+TITLE_AUTOSELECT = []
+
+# Words to match against book genres (case-insensitive).
+# If any word appears in the genre, the book is auto-scheduled for download.
+# Example: ["Textbooks"]
+GENRE_AUTOSELECT = []
