@@ -109,6 +109,8 @@ class BookDownloader:
     def download_all(self, records: list[BookRecord], console: Console) -> None:
         """Download all scheduled books, updating state after each."""
         console.print(f"\n[bold cyan]Downloading {len(records)} book(s)...[/bold cyan]")
+        for record in records:
+            console.print(f"  - {record.title}")
 
         for i, record in enumerate(records, 1):
             console.print(f"\n[bold][{i}/{len(records)}] {record.title}[/bold]")
