@@ -53,7 +53,7 @@ def main() -> None:
 
     with BrowserSession(config) as session:
         scraper = BookScraper(config, session)
-        books = scraper.scrape_all_pages()
+        books = scraper.scrape_all_pages(repo)
 
         books = filter_books(books)
 

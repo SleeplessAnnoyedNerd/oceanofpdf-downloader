@@ -6,6 +6,7 @@ from loguru import logger
 from oceanofpdf_downloader.browser import BrowserSession
 from oceanofpdf_downloader.config import Config
 from oceanofpdf_downloader.models import Book
+from oceanofpdf_downloader.repository import BookRepository
 
 
 def parse_books_from_html(html: str) -> list[Book]:
@@ -94,12 +95,24 @@ class BookScraper:
         finally:
             page.close()
 
-    def scrape_all_pages(self) -> list[Book]:
-        """Scrape all listing pages up to max_pages."""
+    def scrape_all_pages(self, repo: BookRepository | None = None) -> list[Book]:
+        """Scrape all listing pages up to max_pages.
+
+        If a repository is provided, stops early when duplicates (books already
+        in the database) are found on at least 2 different pages.
+        """
         all_books: list[Book] = []
+        pages_with_duplicates = 0
         for page_num in range(1, self.config.max_pages + 1):
             books = self.scrape_listing_page(page_num)
             all_books.extend(books)
+
+            if repo and any(repo.get_by_url(b.detail_url) for b in books):
+                pages_with_duplicates += 1
+                if pages_with_duplicates >= 2:
+                    logger.info("Duplicates found on {} pages, stopping early", pages_with_duplicates)
+                    break
+
             if page_num < self.config.max_pages:
                 logger.info("Pausing {} seconds before next page...", self.config.pause_seconds)
                 time.sleep(self.config.pause_seconds)
