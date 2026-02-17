@@ -1,4 +1,5 @@
 playwright
+playwright-stealth
 rich
 loguru
 pytest

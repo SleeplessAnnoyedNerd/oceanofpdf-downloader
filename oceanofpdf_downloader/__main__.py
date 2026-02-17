@@ -1,6 +1,7 @@
 from loguru import logger
 from rich.console import Console
 
+from oceanofpdf_downloader.browser import BrowserSession
 from oceanofpdf_downloader.config import Config
 from oceanofpdf_downloader.display import display_book_records
 from oceanofpdf_downloader.downloader import BookDownloader
@@ -50,25 +51,26 @@ def main() -> None:
     config = Config(max_pages=max_pages, headless=headless)
     logger.info("Config: max_pages={}, pause={}s, download_dir={}", config.max_pages, config.pause_seconds, config.download_dir)
 
-    with BookScraper(config) as scraper:
+    with BrowserSession(config) as session:
+        scraper = BookScraper(config, session)
         books = scraper.scrape_all_pages()
 
-    books = filter_books(books)
+        books = filter_books(books)
 
-    new_count = repo.import_books(books)
-    logger.info("Imported {} new books ({} duplicates skipped)", new_count, len(books) - new_count)
+        new_count = repo.import_books(books)
+        logger.info("Imported {} new books ({} duplicates skipped)", new_count, len(books) - new_count)
 
-    new_books = repo.get_books_by_state(BookState.NEW)
-    newly_scheduled = select_books(new_books, repo, console)
+        new_books = repo.get_books_by_state(BookState.NEW)
+        newly_scheduled = select_books(new_books, repo, console)
 
-    all_scheduled = pending + newly_scheduled
-    logger.info("{} book(s) scheduled for download.", len(all_scheduled))
+        all_scheduled = pending + newly_scheduled
+        logger.info("{} book(s) scheduled for download.", len(all_scheduled))
 
-    if all_scheduled:
-        with BookDownloader(config, repo) as downloader:
+        if all_scheduled:
+            downloader = BookDownloader(config, repo, session)
             downloader.download_all(all_scheduled, console)
-    else:
-        console.print("\n[yellow]No books scheduled for download.[/yellow]")
+        else:
+            console.print("\n[yellow]No books scheduled for download.[/yellow]")
 
 
 if __name__ == "__main__":

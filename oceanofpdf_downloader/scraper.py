@@ -2,8 +2,8 @@ import re
 import time
 
 from loguru import logger
-from playwright.sync_api import sync_playwright
 
+from oceanofpdf_downloader.browser import BrowserSession
 from oceanofpdf_downloader.config import Config
 from oceanofpdf_downloader.models import Book
 
@@ -68,26 +68,11 @@ def parse_books_from_html(html: str) -> list[Book]:
 
 
 class BookScraper:
-    """Scrapes book listings from oceanofpdf.com using Playwright."""
+    """Scrapes book listings from oceanofpdf.com using a shared BrowserSession."""
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, session: BrowserSession) -> None:
         self.config = config
-        self._playwright = None
-        self._browser = None
-
-    def __enter__(self):
-        self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(headless=self.config.headless)
-        logger.info("Browser launched (headless={})", self.config.headless)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._browser:
-            self._browser.close()
-        if self._playwright:
-            self._playwright.stop()
-        logger.info("Browser closed")
-        return False
+        self.session = session
 
     def _get_page_url(self, page_num: int) -> str:
         if page_num <= 1:
@@ -99,9 +84,9 @@ class BookScraper:
         url = self._get_page_url(page_num)
         logger.info("Scraping page {} — {}", page_num, url)
 
-        page = self._browser.new_page()
+        page = self.session.new_page()
         try:
-            page.goto(url, wait_until="domcontentloaded")
+            self.session.navigate(page, url)
             html = page.content()
             books = parse_books_from_html(html)
             logger.info("Found {} books on page {}", len(books), page_num)

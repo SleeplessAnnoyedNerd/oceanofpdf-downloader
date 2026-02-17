@@ -114,7 +114,7 @@ class TestBookDownloader:
         repo = BookRepository(db_path=":memory:")
         config = Config(max_pages=1, download_dir=str(tmp_path), pause_seconds=0)
 
-        downloader = BookDownloader(config, repo)
+        mock_session = MagicMock()
 
         # Mock Playwright objects
         mock_download = MagicMock()
@@ -138,15 +138,14 @@ class TestBookDownloader:
         mock_ancestor_form.locator.return_value = mock_submit
         mock_page.locator.return_value.first = mock_form_locator
 
-        mock_context = MagicMock()
-        mock_context.new_page.return_value = mock_page
-        downloader._context = mock_context
+        mock_session.new_page.return_value = mock_page
+        downloader = BookDownloader(config, repo, mock_session)
 
         record = self._make_record()
         result = downloader.download_book(record)
 
         assert result is True
-        mock_page.goto.assert_called_once_with(record.detail_url, wait_until="domcontentloaded")
+        mock_session.navigate.assert_called_once_with(mock_page, record.detail_url)
         mock_download.save_as.assert_called_once_with(
             os.path.join(str(tmp_path), "MyBook.pdf")
         )
@@ -156,14 +155,12 @@ class TestBookDownloader:
         repo = BookRepository(db_path=":memory:")
         config = Config(max_pages=1, download_dir=str(tmp_path), pause_seconds=0)
 
-        downloader = BookDownloader(config, repo)
-
+        mock_session = MagicMock()
         mock_page = MagicMock()
         mock_page.content.return_value = NO_FORMS_HTML
+        mock_session.new_page.return_value = mock_page
 
-        mock_context = MagicMock()
-        mock_context.new_page.return_value = mock_page
-        downloader._context = mock_context
+        downloader = BookDownloader(config, repo, mock_session)
 
         record = self._make_record()
         result = downloader.download_book(record)
@@ -179,12 +176,12 @@ class TestBookDownloader:
         repo.insert_book(Book(title="Book A", detail_url="https://example.com/a", language="English", genre="Fiction"))
         repo.update_state(1, BookState.SCHEDULED)
 
-        downloader = BookDownloader(config, repo)
+        mock_session = MagicMock()
+        downloader = BookDownloader(config, repo, mock_session)
         console = MagicMock()
 
         # Patch download_book to return True
         downloader.download_book = MagicMock(return_value=True)
-        downloader._context = MagicMock()
 
         records = repo.get_books_by_state(BookState.SCHEDULED)
         downloader.download_all(records, console)
@@ -200,11 +197,11 @@ class TestBookDownloader:
         repo.insert_book(Book(title="Book B", detail_url="https://example.com/b", language="English", genre="Fiction"))
         repo.update_state(1, BookState.SCHEDULED)
 
-        downloader = BookDownloader(config, repo)
+        mock_session = MagicMock()
+        downloader = BookDownloader(config, repo, mock_session)
         console = MagicMock()
 
         downloader.download_book = MagicMock(return_value=False)
-        downloader._context = MagicMock()
 
         records = repo.get_books_by_state(BookState.SCHEDULED)
         downloader.download_all(records, console)

@@ -17,6 +17,7 @@ Python 3 shall be used as the implementation language. Virtual environment (venv
 * Download directory should be configurable. But please use a sane default, like ~/Downloads under mac OS. Use the server-provided filename. But add a method which would allow renaming of those downloaded files (we will strip the prefix "\_OceanofPDF.com\_", careful those are real underscores and italic, that's the reaons for the backslashes there).
 * Application should be single flow (scrape → select → download). But it should be possible to abort it anytime. After restart currently not downloaded (but marked for download) books shall be downloaded. And the user can process any non-processed books (those are books which are currently 'new').
 * Let the user choose if the browser is visible or runs headless. Default should be visible (for now).
+* What's tricky though: The website uses Cloudflare to protect against bots ("verify that you are human").
 
 # Examples
 

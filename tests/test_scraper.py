@@ -82,12 +82,12 @@ from oceanofpdf_downloader.config import Config
 
 def test_get_page_url_first():
     config = Config(max_pages=1)
-    scraper = BookScraper(config)
+    scraper = BookScraper(config, session=None)
     assert scraper._get_page_url(1) == "https://oceanofpdf.com/recently-added/"
 
 
 def test_get_page_url_subsequent():
     config = Config(max_pages=3)
-    scraper = BookScraper(config)
+    scraper = BookScraper(config, session=None)
     assert scraper._get_page_url(2) == "https://oceanofpdf.com/recently-added/page/2/"
     assert scraper._get_page_url(3) == "https://oceanofpdf.com/recently-added/page/3/"

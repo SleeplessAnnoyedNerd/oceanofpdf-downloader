@@ -4,9 +4,9 @@ import time
 from dataclasses import dataclass
 
 from loguru import logger
-from playwright.sync_api import sync_playwright
 from rich.console import Console
 
+from oceanofpdf_downloader.browser import BrowserSession
 from oceanofpdf_downloader.config import Config
 from oceanofpdf_downloader.models import BookRecord, BookState
 from oceanofpdf_downloader.repository import BookRepository
@@ -48,41 +48,22 @@ def parse_download_forms(html: str) -> list[DownloadForm]:
 
 
 class BookDownloader:
-    """Downloads scheduled books using Playwright."""
+    """Downloads scheduled books using a shared BrowserSession."""
 
-    def __init__(self, config: Config, repo: BookRepository) -> None:
+    def __init__(self, config: Config, repo: BookRepository, session: BrowserSession) -> None:
         self.config = config
         self.repo = repo
-        self._playwright = None
-        self._browser = None
-        self._context = None
-
-    def __enter__(self):
-        self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(headless=self.config.headless)
-        self._context = self._browser.new_context(accept_downloads=True)
-        logger.info("Download browser launched (headless={})", self.config.headless)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._context:
-            self._context.close()
-        if self._browser:
-            self._browser.close()
-        if self._playwright:
-            self._playwright.stop()
-        logger.info("Download browser closed")
-        return False
+        self.session = session
 
     def download_book(self, record: BookRecord) -> bool:
         """Open a book's detail page, find download forms, and download all files.
 
         Returns True if at least one file was downloaded successfully.
         """
-        page = self._context.new_page()
+        page = self.session.new_page()
         try:
             logger.info("Opening detail page: {}", record.detail_url)
-            page.goto(record.detail_url, wait_until="domcontentloaded")
+            self.session.navigate(page, record.detail_url)
             html = page.content()
 
             forms = parse_download_forms(html)
