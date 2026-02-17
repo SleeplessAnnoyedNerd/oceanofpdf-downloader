@@ -33,6 +33,9 @@ def main() -> None:
                 repo.update_state(book.id, BookState.SCHEDULED)
             logger.info("Resuming with {} pending books", len(pending))
         else:
+            for book in pending:
+                repo.update_state(book.id, BookState.SKIPPED)
+            logger.info("Skipped {} pending books", len(pending))
             pending = []
 
     try:
