@@ -1,6 +1,5 @@
-import sys
-
 from loguru import logger
+from rich.console import Console
 
 from oceanofpdf_downloader.config import Config
 from oceanofpdf_downloader.display import display_book_records
@@ -8,10 +7,25 @@ from oceanofpdf_downloader.filters import filter_books
 from oceanofpdf_downloader.models import BookState
 from oceanofpdf_downloader.repository import BookRepository
 from oceanofpdf_downloader.scraper import BookScraper
+from oceanofpdf_downloader.selection import select_books
 
 
 def main() -> None:
     logger.info("OceanOfPDF Downloader starting")
+
+    console = Console()
+    repo = BookRepository()
+
+    # Check for previously scheduled books
+    scheduled = repo.get_books_by_state(BookState.SCHEDULED)
+    if scheduled:
+        console.print(f"\n[bold cyan]{len(scheduled)} book(s) scheduled from a previous run:[/bold cyan]")
+        display_book_records(scheduled, console)
+        answer = console.input("Proceed with these scheduled books? [Y/n]: ").strip().lower()
+        if answer in ("", "y", "yes"):
+            logger.info("Resuming with {} previously scheduled books", len(scheduled))
+        else:
+            scheduled = []
 
     try:
         max_pages = int(input("How many pages to scrape? [1]: ").strip() or "1")
@@ -31,14 +45,14 @@ def main() -> None:
 
     books = filter_books(books)
 
-    repo = BookRepository()
     new_count = repo.import_books(books)
     logger.info("Imported {} new books ({} duplicates skipped)", new_count, len(books) - new_count)
 
     new_books = repo.get_books_by_state(BookState.NEW)
-    display_book_records(new_books)
+    newly_scheduled = select_books(new_books, repo, console)
 
-    logger.info("Done. {} new books in database.", len(new_books))
+    all_scheduled = scheduled + newly_scheduled
+    logger.info("Done. {} book(s) scheduled for download.", len(all_scheduled))
 
 
 if __name__ == "__main__":
