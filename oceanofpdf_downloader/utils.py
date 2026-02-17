@@ -1,3 +1,3 @@
 def rename_file(filename: str) -> str:
-    """Rename a downloaded file. Currently a stub that returns the original name."""
-    return filename
+    """Rename a downloaded file by stripping the _OceanofPDF.com_ prefix."""
+    return filename.replace("_OceanofPDF.com_", "")
