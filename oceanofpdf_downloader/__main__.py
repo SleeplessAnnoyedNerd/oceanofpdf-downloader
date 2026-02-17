@@ -17,16 +17,22 @@ def main() -> None:
     console = Console()
     repo = BookRepository()
 
-    # Check for previously scheduled books
+    # Check for previously scheduled and failed books
     scheduled = repo.get_books_by_state(BookState.SCHEDULED)
-    if scheduled:
-        console.print(f"\n[bold cyan]{len(scheduled)} book(s) scheduled from a previous run:[/bold cyan]")
-        display_book_records(scheduled, console)
-        answer = console.input("Proceed with these scheduled books? [Y/n]: ").strip().lower()
+    retry = repo.get_books_by_state(BookState.RETRY)
+    pending = scheduled + retry
+    if pending:
+        console.print(f"\n[bold cyan]{len(pending)} book(s) pending from a previous run "
+                       f"({len(scheduled)} scheduled, {len(retry)} failed):[/bold cyan]")
+        display_book_records(pending, console)
+        answer = console.input("Proceed with these books? [Y/n]: ").strip().lower()
         if answer in ("", "y", "yes"):
-            logger.info("Resuming with {} previously scheduled books", len(scheduled))
+            # Mark retry books as scheduled again
+            for book in retry:
+                repo.update_state(book.id, BookState.SCHEDULED)
+            logger.info("Resuming with {} pending books", len(pending))
         else:
-            scheduled = []
+            pending = []
 
     try:
         max_pages = int(input("How many pages to scrape? [1]: ").strip() or "1")
@@ -55,7 +61,7 @@ def main() -> None:
     new_books = repo.get_books_by_state(BookState.NEW)
     newly_scheduled = select_books(new_books, repo, console)
 
-    all_scheduled = scheduled + newly_scheduled
+    all_scheduled = pending + newly_scheduled
     logger.info("{} book(s) scheduled for download.", len(all_scheduled))
 
     if all_scheduled:
