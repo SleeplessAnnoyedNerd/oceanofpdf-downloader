@@ -3,6 +3,7 @@ from rich.console import Console
 
 from oceanofpdf_downloader.config import Config
 from oceanofpdf_downloader.display import display_book_records
+from oceanofpdf_downloader.downloader import BookDownloader
 from oceanofpdf_downloader.filters import filter_books
 from oceanofpdf_downloader.models import BookState
 from oceanofpdf_downloader.repository import BookRepository
@@ -52,7 +53,13 @@ def main() -> None:
     newly_scheduled = select_books(new_books, repo, console)
 
     all_scheduled = scheduled + newly_scheduled
-    logger.info("Done. {} book(s) scheduled for download.", len(all_scheduled))
+    logger.info("{} book(s) scheduled for download.", len(all_scheduled))
+
+    if all_scheduled:
+        with BookDownloader(config, repo) as downloader:
+            downloader.download_all(all_scheduled, console)
+    else:
+        console.print("\n[yellow]No books scheduled for download.[/yellow]")
 
 
 if __name__ == "__main__":
