@@ -102,7 +102,7 @@ class BookDownloader:
                     form_selector = f'form[action*="Fetching_Resource.php"] input[value="{form.server_id}"]'
                     form_element = page.locator(form_selector).first
                     submit_button = form_element.locator("xpath=ancestor::form").locator(
-                        'input[type="submit"], button[type="submit"]'
+                        'input[type="submit"], input[type="image"], button[type="submit"]'
                     )
 
                     with page.expect_download() as download_info:

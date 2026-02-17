@@ -38,7 +38,10 @@ def main() -> None:
         logger.error("Number must be >= 1, using 1")
         max_pages = 1
 
-    config = Config(max_pages=max_pages)
+    headless_answer = input("Run browser headless? [y/N]: ").strip().lower()
+    headless = headless_answer in ("y", "yes")
+
+    config = Config(max_pages=max_pages, headless=headless)
     logger.info("Config: max_pages={}, pause={}s, download_dir={}", config.max_pages, config.pause_seconds, config.download_dir)
 
     with BookScraper(config) as scraper:
