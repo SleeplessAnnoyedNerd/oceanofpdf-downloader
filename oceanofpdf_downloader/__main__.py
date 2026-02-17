@@ -63,15 +63,17 @@ def main() -> None:
         new_books = repo.get_books_by_state(BookState.NEW)
 
         # Mark blacklisted books
-        blacklisted_count = 0
+        blacklisted = []
         for record in new_books:
             book = Book(title=record.title, detail_url=record.detail_url,
                         language=record.language, genre=record.genre)
             if is_blacklisted(book):
                 repo.update_state(record.id, BookState.BLACKLISTED)
-                blacklisted_count += 1
-        if blacklisted_count:
-            logger.info("{} book(s) blacklisted by filter", blacklisted_count)
+                blacklisted.append(record)
+        if blacklisted:
+            logger.info("{} book(s) blacklisted by filter", len(blacklisted))
+            for record in blacklisted:
+                console.print(f"  - {record.title} ({record.genre})")
             new_books = repo.get_books_by_state(BookState.NEW)
 
         newly_scheduled = select_books(new_books, repo, console)
