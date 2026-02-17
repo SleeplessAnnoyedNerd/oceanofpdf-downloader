@@ -84,9 +84,9 @@ def test_select_books_none_selected():
         result = select_books(records, repo, console)
 
     assert result == []
-    # All should remain NEW
+    # All should be marked SKIPPED
     for r in records:
-        assert repo.get_by_url(r.detail_url).state == BookState.NEW
+        assert repo.get_by_url(r.detail_url).state == BookState.SKIPPED
 
 
 def test_select_books_some_selected():
@@ -102,7 +102,7 @@ def test_select_books_some_selected():
     assert all(r.state == BookState.SCHEDULED for r in result)
     # Verify DB state
     assert repo.get_by_url("https://example.com/1").state == BookState.SCHEDULED
-    assert repo.get_by_url("https://example.com/2").state == BookState.NEW
+    assert repo.get_by_url("https://example.com/2").state == BookState.SKIPPED
     assert repo.get_by_url("https://example.com/3").state == BookState.SCHEDULED
 
 

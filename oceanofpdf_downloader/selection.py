@@ -72,24 +72,25 @@ def select_books(
 
     indices = parse_selection(answer, len(records))
 
-    if not indices:
-        console.print("[dim]No books selected.[/dim]")
-        return []
-
     scheduled: list[BookRecord] = []
-    for i in sorted(indices):
-        record = records[i - 1]
-        repo.update_state(record.id, BookState.SCHEDULED)
-        scheduled.append(BookRecord(
-            id=record.id,
-            title=record.title,
-            detail_url=record.detail_url,
-            language=record.language,
-            genre=record.genre,
-            state=BookState.SCHEDULED,
-            created_at=record.created_at,
-            updated_at=record.updated_at,
-        ))
+    for i, record in enumerate(records, 1):
+        if i in indices:
+            repo.update_state(record.id, BookState.SCHEDULED)
+            scheduled.append(BookRecord(
+                id=record.id,
+                title=record.title,
+                detail_url=record.detail_url,
+                language=record.language,
+                genre=record.genre,
+                state=BookState.SCHEDULED,
+                created_at=record.created_at,
+                updated_at=record.updated_at,
+            ))
+        elif record.state == BookState.NEW:
+            repo.update_state(record.id, BookState.SKIPPED)
 
-    console.print(f"[green]{len(scheduled)} book(s) scheduled for download.[/green]")
+    if scheduled:
+        console.print(f"[green]{len(scheduled)} book(s) scheduled for download.[/green]")
+    else:
+        console.print("[dim]No books selected.[/dim]")
     return scheduled
