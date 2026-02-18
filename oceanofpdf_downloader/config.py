@@ -9,4 +9,5 @@ class Config:
     download_dir: str = field(default_factory=lambda: os.path.expanduser("~/Downloads"))
     base_url: str = "https://oceanofpdf.com/recently-added/"
     headless: bool = False
+    download_timeout_ms: int = 45000
     profile_dir: str = field(default_factory=lambda: os.path.expanduser("~/.config/oceanofpdf-downloader/browser-profile/"))
