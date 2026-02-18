@@ -44,8 +44,12 @@ def main() -> None:
         logger.error("Invalid number, using 1")
         max_pages = 1
 
-    if max_pages < 1:
-        logger.error("Number must be >= 1, using 1")
+    if max_pages == 0:
+        logger.info("Exiting.")
+        return
+
+    if max_pages < 0:
+        logger.error("Number must be >= 0, using 1")
         max_pages = 1
 
     headless_answer = input("Run browser headless? [y/N]: ").strip().lower()
