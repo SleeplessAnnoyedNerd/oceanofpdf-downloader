@@ -52,10 +52,20 @@ def main() -> None:
         logger.error("Number must be >= 0, using 1")
         max_pages = 1
 
+    try:
+        start_page = int(input("Start from page? [0]: ").strip() or "0")
+    except ValueError:
+        logger.error("Invalid number, using 0")
+        start_page = 0
+
+    if start_page < 0:
+        logger.error("Start page must be >= 0, using 0")
+        start_page = 0
+
     headless_answer = input("Run browser headless? [y/N]: ").strip().lower()
     headless = headless_answer in ("y", "yes")
 
-    config = load_config(max_pages=max_pages, headless=headless)
+    config = load_config(max_pages=max_pages, start_page=start_page, headless=headless)
     logger.info("Config: {}", config)
 
     with BrowserSession(config) as session:

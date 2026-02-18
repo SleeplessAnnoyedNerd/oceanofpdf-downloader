@@ -76,7 +76,7 @@ class BookScraper:
         self.session = session
 
     def _get_page_url(self, page_num: int) -> str:
-        if page_num <= 1:
+        if page_num == 0:
             return self.config.base_url
         return f"{self.config.base_url}page/{page_num}/"
 
@@ -103,7 +103,8 @@ class BookScraper:
         """
         all_books: list[Book] = []
         pages_with_duplicates = 0
-        for page_num in range(1, self.config.max_pages + 1):
+        start = self.config.start_page
+        for page_num in range(start, start + self.config.max_pages):
             books = self.scrape_listing_page(page_num)
             all_books.extend(books)
 
@@ -113,7 +114,7 @@ class BookScraper:
                     logger.info("Duplicates found on {} pages, stopping early", pages_with_duplicates)
                     break
 
-            if page_num < self.config.max_pages:
+            if page_num < start + self.config.max_pages - 1:
                 logger.info("Pausing {} seconds before next page...", self.config.pause_seconds)
                 time.sleep(self.config.pause_seconds)
         logger.info("Total books found: {}", len(all_books))
