@@ -1,5 +1,8 @@
+import importlib
 import os
 from dataclasses import dataclass, field
+
+from loguru import logger
 
 
 @dataclass
@@ -11,3 +14,19 @@ class Config:
     headless: bool = False
     download_timeout_ms: int = 45000
     profile_dir: str = field(default_factory=lambda: os.path.expanduser("~/.config/oceanofpdf-downloader/browser-profile/"))
+
+
+def load_config(**kwargs) -> Config:
+    """Create Config with given kwargs, then apply any overrides from config_local.py if present."""
+    config = Config(**kwargs)
+
+    try:
+        local = importlib.import_module("oceanofpdf_downloader.config_local")
+        logger.info("Loaded local config overrides from config_local.py")
+        for field_name in Config.__dataclass_fields__:
+            if hasattr(local, field_name):
+                setattr(config, field_name, getattr(local, field_name))
+    except ModuleNotFoundError:
+        pass
+
+    return config

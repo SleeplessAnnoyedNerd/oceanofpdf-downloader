@@ -2,7 +2,7 @@ from loguru import logger
 from rich.console import Console
 
 from oceanofpdf_downloader.browser import BrowserSession
-from oceanofpdf_downloader.config import Config
+from oceanofpdf_downloader.config import load_config
 from oceanofpdf_downloader.display import display_book_records
 from oceanofpdf_downloader.downloader import BookDownloader
 from oceanofpdf_downloader.filters import filter_books, is_autoselected, is_blacklisted
@@ -51,7 +51,7 @@ def main() -> None:
     headless_answer = input("Run browser headless? [y/N]: ").strip().lower()
     headless = headless_answer in ("y", "yes")
 
-    config = Config(max_pages=max_pages, headless=headless)
+    config = load_config(max_pages=max_pages, headless=headless)
     logger.info("Config: max_pages={}, pause={}s, download_dir={}", config.max_pages, config.pause_seconds, config.download_dir)
 
     with BrowserSession(config) as session:

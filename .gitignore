@@ -1,3 +1,4 @@
 __pycache__/
 .claude
 filter_config_local.py
+config_local.py
