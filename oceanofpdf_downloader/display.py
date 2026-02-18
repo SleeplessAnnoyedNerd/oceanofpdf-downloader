@@ -15,7 +15,7 @@ def display_books(books: list[Book], console: Console | None = None) -> None:
 
     table = Table(title=f"Books Found ({len(books)})")
     table.add_column("#", style="dim", width=5)
-    table.add_column("Title", style="bold")
+    table.add_column("Title", style="grey85")
     table.add_column("Language")
     table.add_column("Genre")
     table.add_column("URL", style="dim")
@@ -37,7 +37,7 @@ def display_book_records(records: list[BookRecord], console: Console | None = No
 
     table = Table(title=f"Books Found ({len(records)})")
     table.add_column("#", style="dim", width=5)
-    table.add_column("Title", style="bold")
+    table.add_column("Title", style="grey85")
     table.add_column("Language")
     table.add_column("Genre")
     table.add_column("State")
