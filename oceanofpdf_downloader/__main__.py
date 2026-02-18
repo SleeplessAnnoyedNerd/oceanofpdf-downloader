@@ -56,7 +56,7 @@ def main() -> None:
     headless = headless_answer in ("y", "yes")
 
     config = load_config(max_pages=max_pages, headless=headless)
-    logger.info("Config: max_pages={}, pause={}s, download_dir={}", config.max_pages, config.pause_seconds, config.download_dir)
+    logger.info("Config: {}", config)
 
     with BrowserSession(config) as session:
         scraper = BookScraper(config, session)
