@@ -87,7 +87,7 @@ class BookDownloader:
                         'input[type="submit"], input[type="image"], button[type="submit"]'
                     )
 
-                    with page.expect_download() as download_info:
+                    with page.expect_download(timeout=45000) as download_info:
                         submit_button.click()
 
                     download = download_info.value
