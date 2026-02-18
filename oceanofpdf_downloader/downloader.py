@@ -87,12 +87,18 @@ class BookDownloader:
                         'input[type="submit"], input[type="image"], button[type="submit"]'
                     )
 
-                    with page.expect_download(timeout=self.config.download_timeout_ms) as download_info:
+                    if self.config.await_download:
+                        with page.expect_download(timeout=self.config.download_timeout_ms) as download_info:
+                            submit_button.click()
+                        download = download_info.value
+                        download.save_as(save_path)
+                        logger.info("Downloaded: {}", save_path)
+                    else:
                         submit_button.click()
-
-                    download = download_info.value
-                    download.save_as(save_path)
-                    logger.info("Downloaded: {}", save_path)
+                        logger.info("Clicked download for '{}', waiting {}ms (await_download disabled)",
+                                    form.filename, self.config.download_wait_ms)
+                        time.sleep(self.config.download_wait_ms / 1000)
+                        logger.info("File should be in: {}", self.config.download_dir)
                     success_count += 1
 
                     time.sleep(self.config.pause_seconds)
