@@ -26,8 +26,11 @@ def main() -> None:
         console.print(f"\n[bold cyan]{len(pending)} book(s) pending from a previous run "
                        f"({len(scheduled)} scheduled, {len(retry)} failed):[/bold cyan]")
         display_book_records(pending, console)
-        answer = console.input("Proceed with these books? [Y/n]: ").strip().lower()
-        if answer in ("", "y", "yes"):
+        answer = console.input("Proceed with these books? [Y/n/q]: ").strip().lower()
+        if answer in ("q", "quit"):
+            logger.info("Quitting without changes.")
+            return
+        elif answer in ("", "y", "yes"):
             # Mark retry books as scheduled again
             for book in retry:
                 repo.update_state(book.id, BookState.SCHEDULED)
