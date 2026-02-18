@@ -39,6 +39,16 @@ def main() -> None:
             pending = []
 
     try:
+        start_page = int(input("Start from page? [0]: ").strip() or "0")
+    except ValueError:
+        logger.error("Invalid number, using 0")
+        start_page = 0
+
+    if start_page < 0:
+        logger.error("Start page must be >= 0, using 0")
+        start_page = 0
+
+    try:
         max_pages = int(input("How many pages to scrape? [1]: ").strip() or "1")
     except ValueError:
         logger.error("Invalid number, using 1")
@@ -51,16 +61,6 @@ def main() -> None:
     if max_pages < 0:
         logger.error("Number must be >= 0, using 1")
         max_pages = 1
-
-    try:
-        start_page = int(input("Start from page? [0]: ").strip() or "0")
-    except ValueError:
-        logger.error("Invalid number, using 0")
-        start_page = 0
-
-    if start_page < 0:
-        logger.error("Start page must be >= 0, using 0")
-        start_page = 0
 
     headless_answer = input("Run browser headless? [y/N]: ").strip().lower()
     headless = headless_answer in ("y", "yes")
