@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from loguru import logger
 from rich.console import Console
+from rich.markup import escape
 
 from oceanofpdf_downloader.browser import BrowserSession
 from oceanofpdf_downloader.config import Config
@@ -112,23 +113,37 @@ class BookDownloader:
         finally:
             page.close()
 
-    def download_all(self, records: list[BookRecord], console: Console) -> None:
-        """Download all scheduled books, updating state after each."""
-        console.print(f"\n[bold cyan]Downloading {len(records)} book(s)...[/bold cyan]")
-        for record in records:
-            console.print(f"  - {record.title}")
+    def download_all(self, records: list[BookRecord], console: Console, live_display=None) -> int:
+        """Download all scheduled books, updating state after each.
+
+        Returns the number of successfully downloaded books.
+        """
+        if not live_display:
+            console.print(f"\n[bold cyan]Downloading {len(records)} book(s)...[/bold cyan]")
+            for record in records:
+                console.print(f"  - {record.title}")
 
         for i, record in enumerate(records, 1):
-            console.print(f"\n[bold][{i}/{len(records)}] {record.title}[/bold]")
+            if live_display:
+                live_display.set_progress(
+                    f"[bold cyan]Downloading {i} / {len(records)}:[/bold cyan] {escape(record.title)}"
+                )
+            else:
+                console.print(f"\n[bold][{i}/{len(records)}] {record.title}[/bold]")
 
             success = self.download_book(record)
 
             if success:
                 self.repo.update_state(record.id, BookState.DONE)
-                console.print(f"  [green]Done[/green]")
+                if live_display:
+                    logger.info("Done: {}", record.title)
+                else:
+                    console.print(f"  [green]Done[/green]")
             else:
                 self.repo.update_state(record.id, BookState.RETRY)
-                console.print(f"  [red]Failed — marked for retry[/red]")
+                if live_display:
+                    logger.warning("Failed — marked for retry: {}", record.title)
+                else:
+                    console.print(f"  [red]Failed — marked for retry[/red]")
 
-        done = sum(1 for r in records if self.repo.get_by_url(r.detail_url).state == BookState.DONE)
-        console.print(f"\n[bold]Download complete: {done}/{len(records)} succeeded[/bold]")
+        return sum(1 for r in records if self.repo.get_by_url(r.detail_url).state == BookState.DONE)

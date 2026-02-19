@@ -95,7 +95,7 @@ class BookScraper:
         finally:
             page.close()
 
-    def scrape_all_pages(self, repo: BookRepository | None = None) -> list[Book]:
+    def scrape_all_pages(self, repo: BookRepository | None = None, live_display=None) -> list[Book]:
         """Scrape all listing pages up to max_pages.
 
         If a repository is provided, stops early when duplicates (books already
@@ -105,6 +105,11 @@ class BookScraper:
         pages_with_duplicates = 0
         start = self.config.start_page
         for page_num in range(start, start + self.config.max_pages):
+            current = page_num - start + 1
+            if live_display:
+                live_display.set_progress(
+                    f"[bold cyan]Scraping page {current} / {self.config.max_pages}[/bold cyan]"
+                )
             books = self.scrape_listing_page(page_num)
             all_books.extend(books)
 

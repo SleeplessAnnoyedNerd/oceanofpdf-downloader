@@ -16,6 +16,7 @@ class Config:
     download_timeout_ms: int = 45000
     await_download: bool = True
     download_wait_ms: int = 10000
+    log_lines: int = 10
     profile_dir: str = field(default_factory=lambda: os.path.expanduser("~/.config/oceanofpdf-downloader/browser-profile/"))
 
 

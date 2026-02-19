@@ -6,6 +6,7 @@ from oceanofpdf_downloader.config import load_config
 from oceanofpdf_downloader.display import display_book_records
 from oceanofpdf_downloader.downloader import BookDownloader
 from oceanofpdf_downloader.filters import filter_books, is_autoselected, is_blacklisted
+from oceanofpdf_downloader.live_display import LiveDisplay
 from oceanofpdf_downloader.models import Book, BookState
 from oceanofpdf_downloader.repository import BookRepository
 from oceanofpdf_downloader.scraper import BookScraper
@@ -71,9 +72,16 @@ def main() -> None:
     config = load_config(max_pages=max_pages, start_page=start_page, headless=headless)
     logger.info("Config: {}", config)
 
+    live = LiveDisplay(config, console)
+    logger.remove()
+    logger.add(live.sink, colorize=False)
+
     with BrowserSession(config) as session:
         scraper = BookScraper(config, session)
-        books = scraper.scrape_all_pages(repo)
+
+        live.enable()
+        books = scraper.scrape_all_pages(repo, live_display=live)
+        live.disable()
 
         books = filter_books(books)
 
@@ -118,7 +126,10 @@ def main() -> None:
 
         if all_scheduled:
             downloader = BookDownloader(config, repo, session)
-            downloader.download_all(all_scheduled, console)
+            live.enable()
+            done = downloader.download_all(all_scheduled, console, live_display=live)
+            live.disable()
+            console.print(f"\n[bold]Download complete: {done}/{len(all_scheduled)} succeeded[/bold]")
         else:
             console.print("\n[yellow]No books scheduled for download.[/yellow]")
 
