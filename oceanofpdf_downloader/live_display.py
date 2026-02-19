@@ -1,8 +1,10 @@
+import math
 import sys
 from collections import deque
 
 from rich.console import Console
 from rich.markup import escape
+from rich.text import Text
 
 from oceanofpdf_downloader.config import Config
 
@@ -67,6 +69,10 @@ class LiveDisplay:
         lines.extend(self._buffer)
         if not lines:
             return
-        self._last_line_count = len(lines)
+        width = self._console.width or 80
+        self._last_line_count = sum(
+            max(1, math.ceil(Text.from_markup(line).cell_len / width))
+            for line in lines
+        )
         for line in lines:
             self._console.print(line, highlight=False)
