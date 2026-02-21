@@ -18,6 +18,7 @@ class Config:
     download_wait_ms: int = 10000
     log_lines: int = 10
     profile_dir: str = field(default_factory=lambda: os.path.expanduser("~/.config/oceanofpdf-downloader/browser-profile/"))
+    paginated: bool = True
 
 
 def load_config(**kwargs) -> Config:

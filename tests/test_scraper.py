@@ -83,7 +83,7 @@ from oceanofpdf_downloader.config import Config
 def test_get_page_url_first():
     config = Config(max_pages=1)
     scraper = BookScraper(config, session=None)
-    assert scraper._get_page_url(1) == "https://oceanofpdf.com/recently-added/"
+    assert scraper._get_page_url(0) == "https://oceanofpdf.com/recently-added/"
 
 
 def test_get_page_url_subsequent():
@@ -91,3 +91,74 @@ def test_get_page_url_subsequent():
     scraper = BookScraper(config, session=None)
     assert scraper._get_page_url(2) == "https://oceanofpdf.com/recently-added/page/2/"
     assert scraper._get_page_url(3) == "https://oceanofpdf.com/recently-added/page/3/"
+
+
+def test_get_page_url_non_paginated():
+    config = Config(max_pages=1, base_url="https://oceanofpdf.com/new-releases/", paginated=False)
+    scraper = BookScraper(config, session=None)
+    assert scraper._get_page_url(0) == "https://oceanofpdf.com/new-releases/"
+    assert scraper._get_page_url(5) == "https://oceanofpdf.com/new-releases/"
+
+
+from oceanofpdf_downloader.scraper import parse_new_releases_from_html
+
+
+NEW_RELEASES_HTML = """
+<html><body>
+<article class="post page entry" aria-label="New Releases">
+  <div class="entry-content">
+    <div class="row all-event-list mt20 book-list">
+      <div class="col-lg-2 col-sm-3 col-6">
+        <div class="widget-event">
+          <a class="title-image" href="https://oceanofpdf.com/authors/jane-doe/pdf-epub-book-one-download/" title="Book One by Jane Doe">
+            <img src="cover1.jpg" alt="" />
+          </a>
+          <div class="widget-event__info">
+            <div class="title">
+              <a href="https://oceanofpdf.com/authors/jane-doe/pdf-epub-book-one-download/" title="Book One by Jane Doe">Book One by Jane Doe</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-2 col-sm-3 col-6">
+        <div class="widget-event">
+          <a class="title-image" href="https://oceanofpdf.com/authors/john-smith/pdf-epub-book-two-download/" title="Book Two by John Smith">
+            <img src="cover2.jpg" alt="" />
+          </a>
+          <div class="widget-event__info">
+            <div class="title">
+              <a href="https://oceanofpdf.com/authors/john-smith/pdf-epub-book-two-download/" title="Book Two by John Smith">Book Two by John Smith</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+</body></html>
+"""
+
+
+def test_parse_new_releases_count():
+    books = parse_new_releases_from_html(NEW_RELEASES_HTML)
+    assert len(books) == 2
+
+
+def test_parse_new_releases_titles_and_urls():
+    books = parse_new_releases_from_html(NEW_RELEASES_HTML)
+    assert books[0].title == "Book One by Jane Doe"
+    assert books[0].detail_url == "https://oceanofpdf.com/authors/jane-doe/pdf-epub-book-one-download/"
+    assert books[1].title == "Book Two by John Smith"
+    assert books[1].detail_url == "https://oceanofpdf.com/authors/john-smith/pdf-epub-book-two-download/"
+
+
+def test_parse_new_releases_unknown_metadata():
+    books = parse_new_releases_from_html(NEW_RELEASES_HTML)
+    for book in books:
+        assert book.language == "Unknown"
+        assert book.genre == "Unknown"
+
+
+def test_parse_new_releases_empty():
+    books = parse_new_releases_from_html("<html><body><p>No books</p></body></html>")
+    assert books == []

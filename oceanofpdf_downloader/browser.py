@@ -1,3 +1,6 @@
+import os
+import platform
+import subprocess
 import time
 
 from loguru import logger
@@ -18,8 +21,12 @@ class BrowserSession:
         self._playwright = None
         self._context = None
         self._stealth = Stealth()
+        self._xvfb = None
 
     def __enter__(self):
+        if platform.system() == "Linux" and "DISPLAY" not in os.environ:
+            self._start_xvfb()
+
         self._playwright = sync_playwright().start()
 
         launch_args = [
@@ -53,8 +60,23 @@ class BrowserSession:
             self._context.close()
         if self._playwright:
             self._playwright.stop()
+        if self._xvfb:
+            self._xvfb.terminate()
+            self._xvfb.wait()
+            logger.info("Stopped Xvfb")
         logger.info("Browser closed")
         return False
+
+    def _start_xvfb(self) -> None:
+        display = ":99"
+        self._xvfb = subprocess.Popen(
+            ["Xvfb", display, "-screen", "0", "1280x1024x24"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        time.sleep(0.5)  # give Xvfb time to initialise
+        os.environ["DISPLAY"] = display
+        logger.info("Started Xvfb virtual display on {}", display)
 
     def new_page(self):
         """Create a new page with stealth patches applied and download behavior set."""

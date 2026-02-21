@@ -68,6 +68,27 @@ def parse_books_from_html(html: str) -> list[Book]:
     return books
 
 
+def parse_new_releases_from_html(html: str) -> list[Book]:
+    """Parse book entries from the new-releases page.
+
+    Books appear as <div class="widget-event"> elements. Title and URL are
+    taken from <a class="title-image" href="..." title="...">. No language or
+    genre metadata is available; both are set to "Unknown".
+    """
+    books: list[Book] = []
+    for url, title in re.findall(
+        r'<a\s+class="title-image"\s+href="([^"]+)"\s+title="([^"]+)"',
+        html,
+    ):
+        books.append(Book(
+            title=title,
+            detail_url=url,
+            language="Unknown",
+            genre="Unknown",
+        ))
+    return books
+
+
 class BookScraper:
     """Scrapes book listings from oceanofpdf.com using a shared BrowserSession."""
 
@@ -76,6 +97,8 @@ class BookScraper:
         self.session = session
 
     def _get_page_url(self, page_num: int) -> str:
+        if not self.config.paginated:
+            return self.config.base_url
         if page_num == 0:
             return self.config.base_url
         return f"{self.config.base_url}page/{page_num}/"
@@ -89,7 +112,10 @@ class BookScraper:
         try:
             self.session.navigate(page, url)
             html = page.content()
-            books = parse_books_from_html(html)
+            if self.config.paginated:
+                books = parse_books_from_html(html)
+            else:
+                books = parse_new_releases_from_html(html)
             logger.info("Found {} books on page {}", len(books), page_num)
             return books
         finally:

@@ -42,34 +42,54 @@ def main() -> None:
             logger.info("Skipped {} pending books", len(pending))
             pending = []
 
-    try:
-        start_page = int(input("Start from page? [0]: ").strip() or "0")
-    except ValueError:
-        logger.error("Invalid number, using 0")
+    console.print("\nSelect source:")
+    console.print("  [1] Recently Added  (https://oceanofpdf.com/recently-added/)")
+    console.print("  [2] New Releases    (https://oceanofpdf.com/new-releases/)")
+    source_answer = input("Choice [1]: ").strip() or "1"
+
+    if source_answer == "2":
+        base_url = "https://oceanofpdf.com/new-releases/"
+        paginated = False
         start_page = 0
-
-    if start_page < 0:
-        logger.error("Start page must be >= 0, using 0")
-        start_page = 0
-
-    try:
-        max_pages = int(input("How many pages to scrape? [1]: ").strip() or "1")
-    except ValueError:
-        logger.error("Invalid number, using 1")
         max_pages = 1
+    else:
+        base_url = "https://oceanofpdf.com/recently-added/"
+        paginated = True
 
-    if max_pages == 0:
-        logger.info("Exiting.")
-        return
+        try:
+            start_page = int(input("Start from page? [0]: ").strip() or "0")
+        except ValueError:
+            logger.error("Invalid number, using 0")
+            start_page = 0
 
-    if max_pages < 0:
-        logger.error("Number must be >= 0, using 1")
-        max_pages = 1
+        if start_page < 0:
+            logger.error("Start page must be >= 0, using 0")
+            start_page = 0
+
+        try:
+            max_pages = int(input("How many pages to scrape? [1]: ").strip() or "1")
+        except ValueError:
+            logger.error("Invalid number, using 1")
+            max_pages = 1
+
+        if max_pages == 0:
+            logger.info("Exiting.")
+            return
+
+        if max_pages < 0:
+            logger.error("Number must be >= 0, using 1")
+            max_pages = 1
 
     headless_answer = input("Run browser headless? [y/N]: ").strip().lower()
     headless = headless_answer in ("y", "yes")
 
-    config = load_config(max_pages=max_pages, start_page=start_page, headless=headless)
+    config = load_config(
+        max_pages=max_pages,
+        start_page=start_page,
+        headless=headless,
+        base_url=base_url,
+        paginated=paginated,
+    )
     logger.info("Config: {}", config)
 
     live = LiveDisplay(config, console)
@@ -101,7 +121,8 @@ def main() -> None:
         if blacklisted:
             logger.info("{} book(s) blacklisted by filter", len(blacklisted))
             for record in blacklisted:
-                console.print(f"  - {record.title} ({record.genre})")
+                genre_str = f" ({record.genre})" if record.genre != "Unknown" else ""
+                console.print(f"  - {record.title}{genre_str}")
             new_books = repo.get_books_by_state(BookState.NEW)
 
         # Auto-schedule matching books
@@ -115,7 +136,8 @@ def main() -> None:
         if autoselected:
             logger.info("{} book(s) auto-scheduled by filter", len(autoselected))
             for record in autoselected:
-                console.print(f"  - {record.title} ({record.genre})")
+                genre_str = f" ({record.genre})" if record.genre != "Unknown" else ""
+                console.print(f"  - {record.title}{genre_str}")
             new_books = repo.get_books_by_state(BookState.NEW)
 
         newly_scheduled = select_books(new_books, repo, console)
