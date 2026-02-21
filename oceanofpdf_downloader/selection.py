@@ -57,17 +57,21 @@ def _select_page(
     total_pages: int,
     repo: BookRepository,
     console: Console,
-) -> list[BookRecord]:
-    """Display one page of books and prompt for selection. Returns scheduled records."""
+) -> list[BookRecord] | None:
+    """Display one page of books and prompt for selection.
+
+    Returns scheduled records, or None if the user quit with 'q'.
+    """
     display_book_records(page_records, console)
 
     page_label = f" (page {page_num}/{total_pages})" if total_pages > 1 else ""
     answer = Prompt.ask(
-        f"Select books to download{page_label} (e.g. 1,3,5 or 1-{len(page_records)} or all)",
+        f"Select books to download{page_label} (e.g. 1,3,5 or 1-{len(page_records)} or all, q to stop)",
         default="none",
         console=console,
     )
 
+    quit_requested = answer.strip().lower() == "q"
     indices = parse_selection(answer, len(page_records))
 
     scheduled: list[BookRecord] = []
@@ -87,7 +91,7 @@ def _select_page(
         elif record.state == BookState.NEW:
             repo.update_state(record.id, BookState.SKIPPED)
 
-    return scheduled
+    return None if quit_requested else scheduled
 
 
 def select_books(
@@ -112,6 +116,8 @@ def select_books(
         page_records = records[start:end]
 
         scheduled = _select_page(page_records, page_num, total_pages, repo, console)
+        if scheduled is None:
+            break
         all_scheduled.extend(scheduled)
 
     if all_scheduled:
