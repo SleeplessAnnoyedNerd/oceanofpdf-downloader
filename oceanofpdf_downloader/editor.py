@@ -122,12 +122,16 @@ class BookEditorApp(App):
         Binding("q", "quit", "Quit"),
     ]
 
-    DEFAULT_CSS = """
+    CSS = """
     #status-bar {
         height: 1;
         background: $panel;
         padding: 0 1;
         color: $text-muted;
+    }
+    DataTable .datatable--cursor {
+        background: #505050;
+        color: #ffffff;
     }
     """
 
