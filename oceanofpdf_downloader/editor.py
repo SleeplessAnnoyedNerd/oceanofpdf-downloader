@@ -52,6 +52,32 @@ class StateModal(ModalScreen):
         self.dismiss(BookState(state_value))
 
 
+class ZoomModal(ModalScreen):
+    """Pop-up showing the full title of the selected book. Any key closes it."""
+
+    DEFAULT_CSS = """
+    ZoomModal {
+        align: center middle;
+    }
+    ZoomModal > Label {
+        width: 60;
+        border: tall $primary;
+        background: $surface;
+        padding: 1 2;
+    }
+    """
+
+    def __init__(self, title: str) -> None:
+        super().__init__()
+        self._title = title
+
+    def compose(self) -> ComposeResult:
+        yield Label(self._title)
+
+    def on_key(self) -> None:
+        self.dismiss()
+
+
 class SearchModal(ModalScreen):
     """Pop-up for entering a search query."""
 
@@ -91,6 +117,7 @@ class BookEditorApp(App):
     BINDINGS = [
         Binding("c", "change_state", "Change State"),
         Binding("f", "find", "Find"),
+        Binding("z", "zoom", "Zoom Title"),
         Binding("q", "quit", "Quit"),
     ]
 
@@ -156,6 +183,12 @@ class BookEditorApp(App):
         if new_state is not None:
             self.repo.update_state(book.id, new_state)
             self._refresh_books()
+
+    async def action_zoom(self) -> None:
+        book = self._current_book()
+        if book is None:
+            return
+        await self.push_screen_wait(ZoomModal(book.title))
 
     async def action_find(self) -> None:
         query = await self.push_screen_wait(SearchModal())
