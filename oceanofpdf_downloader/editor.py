@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.screen import ModalScreen
@@ -175,6 +176,7 @@ class BookEditorApp(App):
             return None
         return self._books[row_idx]
 
+    @work
     async def action_change_state(self) -> None:
         book = self._current_book()
         if book is None:
@@ -184,12 +186,14 @@ class BookEditorApp(App):
             self.repo.update_state(book.id, new_state)
             self._refresh_books()
 
+    @work
     async def action_zoom(self) -> None:
         book = self._current_book()
         if book is None:
             return
         await self.push_screen_wait(ZoomModal(book.title))
 
+    @work
     async def action_find(self) -> None:
         query = await self.push_screen_wait(SearchModal())
         if query is None:  # Escape pressed
