@@ -132,7 +132,7 @@ class BookEditorApp(App):
                 str(b.id),
                 b.state.value,
                 b.title[:40],
-                b.genre,
+                b.genre[:20],
             )
 
         status = self.query_one("#status-bar", Label)
