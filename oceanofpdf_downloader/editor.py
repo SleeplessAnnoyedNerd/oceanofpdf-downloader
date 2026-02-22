@@ -131,7 +131,7 @@ class BookEditorApp(App):
             table.add_row(
                 str(b.id),
                 b.state.value,
-                b.title,
+                b.title[:40],
                 b.genre,
             )
 
