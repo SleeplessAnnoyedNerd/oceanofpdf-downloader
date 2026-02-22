@@ -11,13 +11,9 @@ from oceanofpdf_downloader.repository import BookRepository
 
 COLUMNS = [
     ("id", "ID"),
-    ("title", "Title"),
-    ("detail_url", "URL"),
-    ("language", "Language"),
-    ("genre", "Genre"),
     ("state", "State"),
-    ("created_at", "Created"),
-    ("updated_at", "Updated"),
+    ("title", "Title"),
+    ("genre", "Genre"),
 ]
 
 EDITABLE_STATES = [s for s in BookState if s != BookState.BLACKLISTED]
@@ -134,13 +130,9 @@ class BookEditorApp(App):
         for b in self._books:
             table.add_row(
                 str(b.id),
-                b.title,
-                b.detail_url,
-                b.language,
-                b.genre,
                 b.state.value,
-                b.created_at,
-                b.updated_at,
+                b.title,
+                b.genre,
             )
 
         status = self.query_one("#status-bar", Label)
