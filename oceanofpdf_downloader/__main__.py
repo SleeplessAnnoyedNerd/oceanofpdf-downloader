@@ -1,3 +1,5 @@
+import argparse
+
 from loguru import logger
 from rich.console import Console
 
@@ -14,6 +16,18 @@ from oceanofpdf_downloader.selection import select_books
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="OceanOfPDF Downloader")
+    parser.add_argument(
+        "--editor", action="store_true",
+        help="Launch the database editor instead of the downloader",
+    )
+    args = parser.parse_args()
+
+    if args.editor:
+        from oceanofpdf_downloader.editor import run_editor
+        run_editor()
+        return
+
     logger.info("OceanOfPDF Downloader starting")
 
     console = Console()

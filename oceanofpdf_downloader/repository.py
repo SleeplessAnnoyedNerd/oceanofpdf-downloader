@@ -84,3 +84,23 @@ class BookRepository:
             (state.value, book_id),
         )
         self._conn.commit()
+
+    def get_all_books(self) -> list[BookRecord]:
+        """Return all non-blacklisted books ordered by updated_at DESC."""
+        rows = self._conn.execute(
+            "SELECT * FROM books WHERE state != 'blacklisted' ORDER BY updated_at DESC"
+        ).fetchall()
+        return [self._row_to_record(row) for row in rows]
+
+    def search_books(self, query: str) -> list[BookRecord]:
+        """Search non-blacklisted books by title, language, or genre (SQL LIKE),
+        ordered by updated_at DESC."""
+        like = f"%{query}%"
+        rows = self._conn.execute(
+            """SELECT * FROM books
+               WHERE state != 'blacklisted'
+                 AND (title LIKE ? OR language LIKE ? OR genre LIKE ?)
+               ORDER BY updated_at DESC""",
+            (like, like, like),
+        ).fetchall()
+        return [self._row_to_record(row) for row in rows]

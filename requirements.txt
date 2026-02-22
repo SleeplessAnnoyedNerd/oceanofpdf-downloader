@@ -3,3 +3,4 @@ playwright-stealth
 rich
 loguru
 pytest
+textual
