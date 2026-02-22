@@ -13,6 +13,7 @@ COLUMNS = [
     ("id", "ID"),
     ("state", "State"),
     ("title", "Title"),
+    ("language", "Language"),
     ("genre", "Genre"),
 ]
 
@@ -132,6 +133,7 @@ class BookEditorApp(App):
                 str(b.id),
                 b.state.value,
                 b.title[:40],
+                b.language,
                 b.genre[:20],
             )
 
