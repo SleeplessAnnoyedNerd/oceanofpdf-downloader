@@ -138,7 +138,7 @@ class BookEditorApp(App):
         self._books: list[BookRecord] = []
 
     def compose(self) -> ComposeResult:
-        yield DataTable(id="books-table", zebra_stripes=True)
+        yield DataTable(id="books-table", zebra_stripes=True, cursor_type="row")
         yield Label("", id="status-bar")
         yield Footer()
 
@@ -171,7 +171,7 @@ class BookEditorApp(App):
 
     def _current_book(self) -> BookRecord | None:
         table = self.query_one(DataTable)
-        row_idx = table.cursor_coordinate.row
+        row_idx = table.cursor_row
         if row_idx < 0 or row_idx >= len(self._books):
             return None
         return self._books[row_idx]
