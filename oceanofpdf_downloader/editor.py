@@ -185,10 +185,13 @@ class BookEditorApp(App):
         book = self._current_book()
         if book is None:
             return
+        saved_row = self.query_one(DataTable).cursor_row
         new_state = await self.push_screen_wait(StateModal())
         if new_state is not None:
             self.repo.update_state(book.id, new_state)
             self._refresh_books()
+            table = self.query_one(DataTable)
+            table.move_cursor(row=min(saved_row, len(self._books) - 1))
 
     @work
     async def action_zoom(self) -> None:
