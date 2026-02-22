@@ -27,7 +27,20 @@ def test_config_custom():
     assert config.headless is True
 
 
-def test_load_config_no_local():
+def test_load_config_no_local(monkeypatch):
+    import importlib
+
+    monkeypatch.delitem(sys.modules, "oceanofpdf_downloader.config_local", raising=False)
+
+    real_import = importlib.import_module
+
+    def stub(name, *args, **kwargs):
+        if name == "oceanofpdf_downloader.config_local":
+            raise ModuleNotFoundError(name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib, "import_module", stub)
+
     config = load_config(max_pages=3)
     assert config.max_pages == 3
     assert config.pause_seconds == 2.0
