@@ -19,6 +19,10 @@ class Config:
     log_lines: int = 10
     profile_dir: str = field(default_factory=lambda: os.path.expanduser("~/.config/oceanofpdf-downloader/browser-profile/"))
     paginated: bool = True
+    ml_autoselect: bool = False
+    ml_confidence_threshold: float = 0.7
+    ml_model_path: str = field(default_factory=lambda: os.path.expanduser(
+        "~/.config/oceanofpdf-downloader/model.pkl"))
 
 
 def load_config(**kwargs) -> Config:

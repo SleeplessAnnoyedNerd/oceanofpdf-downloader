@@ -4,3 +4,5 @@ rich
 loguru
 pytest
 textual
+scikit-learn
+joblib

@@ -21,7 +21,22 @@ def main() -> None:
         "--editor", action="store_true",
         help="Launch the database editor instead of the downloader",
     )
+    parser.add_argument(
+        "--train", action="store_true",
+        help="Train the ML model from existing DONE/SKIPPED/BLACKLISTED books and exit",
+    )
     args = parser.parse_args()
+
+    if args.train:
+        from oceanofpdf_downloader.ml_selector import MLSelector
+        config = load_config(max_pages=1)
+        repo = BookRepository()
+        ml = MLSelector(config)
+        try:
+            ml.train(repo)
+        except ValueError as e:
+            logger.error("Training failed: {}", e)
+        return
 
     if args.editor:
         from oceanofpdf_downloader.editor import run_editor
@@ -155,6 +170,24 @@ def main() -> None:
                 genre_str = f" ({record.genre})" if record.genre != "Unknown" else ""
                 console.print(f"  - {record.title}{genre_str}")
             new_books = repo.get_books_by_state(BookState.NEW)
+
+        # ML auto-selection
+        if config.ml_autoselect:
+            from oceanofpdf_downloader.ml_selector import MLSelector
+            ml_selector = MLSelector(config)
+            if ml_selector.load():
+                ml_selected = [r for r in new_books if ml_selector.predict(
+                    Book(title=r.title, detail_url=r.detail_url,
+                         language=r.language, genre=r.genre))]
+                for record in ml_selected:
+                    repo.update_state(record.id, BookState.SCHEDULED)
+                if ml_selected:
+                    logger.info("{} book(s) auto-scheduled by ML", len(ml_selected))
+                    for r in ml_selected:
+                        console.print(f"  [dim]ML[/dim] - {r.title} ({r.genre})")
+                    new_books = repo.get_books_by_state(BookState.NEW)
+            else:
+                logger.warning("ml_autoselect enabled but no trained model — run with --train first")
 
         newly_scheduled = select_books(new_books, repo, console)
         newly_scheduled.extend(autoselected)
