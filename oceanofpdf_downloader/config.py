@@ -23,6 +23,8 @@ class Config:
     ml_confidence_threshold: float = 0.7
     ml_model_path: str = field(default_factory=lambda: os.path.expanduser(
         "~/.config/oceanofpdf-downloader/model.pkl"))
+    ml_negative_examples_path: str = field(default_factory=lambda: os.path.expanduser(
+        "~/.config/oceanofpdf-downloader/ml_negatives.txt"))
 
 
 def load_config(**kwargs) -> Config:

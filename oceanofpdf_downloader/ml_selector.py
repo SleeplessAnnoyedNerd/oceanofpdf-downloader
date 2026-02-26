@@ -37,8 +37,16 @@ class MLSelector:
         f"Need at least {MIN_SAMPLES_PER_CLASS} SKIPPED/BLACKLISTED books, got {len(negatives)}"
       )
 
-    texts = [self._book_to_text(b) for b in positives] + [self._book_to_text(b) for b in negatives]
-    labels = [1] * len(positives) + [0] * len(negatives)
+    extra_negatives = self._load_negative_examples()
+    if extra_negatives:
+      logger.info("Loaded {} extra negative example(s) from {}", len(extra_negatives), self.config.ml_negative_examples_path)
+
+    texts = (
+      [self._book_to_text(b) for b in positives]
+      + [self._book_to_text(b) for b in negatives]
+      + extra_negatives
+    )
+    labels = [1] * len(positives) + [0] * (len(negatives) + len(extra_negatives))
 
     pipeline = Pipeline([
       ("tfidf", TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True)),
@@ -75,6 +83,18 @@ class MLSelector:
     text = self._book_to_text(book)
     prob = self._pipeline.predict_proba([text])[0][1]
     return float(prob) >= self.config.ml_confidence_threshold
+
+  def _load_negative_examples(self) -> list[str]:
+    path = self.config.ml_negative_examples_path
+    if not path or not os.path.exists(path):
+      return []
+    titles = []
+    with open(path, encoding="utf-8") as f:
+      for line in f:
+        line = line.strip()
+        if line and not line.startswith("#"):
+          titles.append(f"{line} Unknown Unknown")
+    return titles
 
   def score(self, book: Book) -> float:
     """Return raw P(positive) without applying the threshold."""
