@@ -72,7 +72,7 @@ def _select_page(
     )
 
     quit_requested = answer.strip().lower() == "q"
-    indices = parse_selection(answer, len(page_records))
+    indices = set() if quit_requested else parse_selection(answer, len(page_records))
 
     scheduled: list[BookRecord] = []
     for i, record in enumerate(page_records, 1):

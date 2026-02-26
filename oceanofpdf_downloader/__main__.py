@@ -81,14 +81,16 @@ def main() -> None:
             start_page = 0
 
         try:
-            max_pages = int(input("How many pages to scrape? [1]: ").strip() or "1")
+            max_pages = int(input("How many pages to scrape? [15]: ").strip() or "15")
         except ValueError:
-            logger.error("Invalid number, using 1")
-            max_pages = 1
+            logger.error("Invalid number, using 15")
+            max_pages = 15
 
         if max_pages == 0:
-            logger.info("Exiting.")
-            return
+            if not pending:
+                logger.info("Exiting.")
+                return
+            logger.info("max_pages=0, skipping scrape — will only download pending books.")
 
         if max_pages < 0:
             logger.error("Number must be >= 0, using 1")
