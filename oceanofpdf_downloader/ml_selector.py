@@ -2,15 +2,47 @@ import os
 
 import joblib
 from loguru import logger
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from oceanofpdf_downloader.models import Book, BookState
 from oceanofpdf_downloader.repository import BookRepository
 
-MODEL_VERSION = 1
+MODEL_VERSION = 2
 MIN_SAMPLES_PER_CLASS = 3
+
+
+class SentenceTransformerEmbedder(BaseEstimator, TransformerMixin):
+  """Thin sklearn-compatible wrapper around a sentence-transformers model.
+
+  The underlying transformer is loaded lazily and excluded from pickling so
+  that joblib only serialises the model name and the fitted classifier weights,
+  not the full transformer checkpoint.
+  """
+
+  def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
+    self.model_name = model_name
+    self._model = None
+
+  def _load(self):
+    if self._model is None:
+      from sentence_transformers import SentenceTransformer
+      logger.info("Loading sentence transformer model '{}'", self.model_name)
+      self._model = SentenceTransformer(self.model_name)
+    return self._model
+
+  def fit(self, X, y=None):
+    self._load()
+    return self
+
+  def transform(self, X):
+    return self._load().encode(list(X), show_progress_bar=False)
+
+  def __getstate__(self):
+    state = self.__dict__.copy()
+    state["_model"] = None  # don't pickle transformer weights
+    return state
 
 
 class MLSelector:
@@ -49,7 +81,7 @@ class MLSelector:
     labels = [1] * len(positives) + [0] * (len(negatives) + len(extra_negatives))
 
     pipeline = Pipeline([
-      ("tfidf", TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True)),
+      ("embed", SentenceTransformerEmbedder(self.config.ml_sentence_transformer_model)),
       ("clf", LogisticRegression(class_weight="balanced", max_iter=1000)),
     ])
     pipeline.fit(texts, labels)
@@ -77,13 +109,6 @@ class MLSelector:
     self._pipeline = data["pipeline"]
     return True
 
-  def predict(self, book: Book) -> bool:
-    if self._pipeline is None:
-      raise RuntimeError("Model not loaded — call load() or train() first")
-    text = self._book_to_text(book)
-    prob = self._pipeline.predict_proba([text])[0][1]
-    return float(prob) >= self.config.ml_confidence_threshold
-
   def _load_negative_examples(self) -> list[str]:
     path = self.config.ml_negative_examples_path
     if not path or not os.path.exists(path):
@@ -95,6 +120,13 @@ class MLSelector:
         if line and not line.startswith("#"):
           titles.append(f"{line} Unknown Unknown")
     return titles
+
+  def predict(self, book: Book) -> bool:
+    if self._pipeline is None:
+      raise RuntimeError("Model not loaded — call load() or train() first")
+    text = self._book_to_text(book)
+    prob = self._pipeline.predict_proba([text])[0][1]
+    return float(prob) >= self.config.ml_confidence_threshold
 
   def score(self, book: Book) -> float:
     """Return raw P(positive) without applying the threshold."""

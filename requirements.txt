@@ -6,3 +6,4 @@ pytest
 textual
 scikit-learn
 joblib
+sentence-transformers
