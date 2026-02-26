@@ -29,6 +29,10 @@ def main() -> None:
         "--check-training", action="store_true",
         help="Run the trained model against the database and print match statistics",
     )
+    parser.add_argument(
+        "--auto-only", action="store_true",
+        help="Skip manual selection; only download auto-selected books (NEW books stay NEW)",
+    )
     args = parser.parse_args()
 
     if args.train:
@@ -248,6 +252,7 @@ def main() -> None:
             new_books = repo.get_books_by_state(BookState.NEW)
 
         # ML auto-selection
+        ml_selected = []
         if config.ml_autoselect:
             from oceanofpdf_downloader.ml_selector import MLSelector
             ml_selector = MLSelector(config)
@@ -265,8 +270,12 @@ def main() -> None:
             else:
                 logger.warning("ml_autoselect enabled but no trained model — run with --train first")
 
-        newly_scheduled = select_books(new_books, repo, console)
-        newly_scheduled.extend(autoselected)
+        if args.auto_only:
+            newly_scheduled = list(autoselected) + ml_selected
+        else:
+            newly_scheduled = select_books(new_books, repo, console)
+            newly_scheduled.extend(autoselected)
+            newly_scheduled.extend(ml_selected)
 
         all_scheduled = pending + newly_scheduled
         logger.info("{} book(s) scheduled for download.", len(all_scheduled))
