@@ -94,6 +94,36 @@ def _select_page(
     return None if quit_requested else scheduled
 
 
+def review_ml_selected(
+    records: list[BookRecord],
+    repo: BookRepository,
+    console: Console,
+) -> list[BookRecord]:
+    """Show ML-selected books and let the user blacklist unwanted ones by number.
+
+    Returns the records that remain SCHEDULED.
+    """
+    console.print(f"\n[bold cyan]{len(records)} book(s) auto-scheduled by ML:[/bold cyan]")
+    display_book_records(records, console)
+
+    answer = Prompt.ask(
+        "Blacklist by number (e.g. 1,3 or 2-4), or press Enter to keep all",
+        default="",
+        console=console,
+    )
+
+    to_blacklist = parse_selection(answer, len(records))
+    kept = []
+    for i, record in enumerate(records, 1):
+        if i in to_blacklist:
+            repo.update_state(record.id, BookState.BLACKLISTED)
+            logger.info("Blacklisted after ML review: {}", record.title)
+        else:
+            kept.append(record)
+
+    return kept
+
+
 def select_books(
     records: list[BookRecord],
     repo: BookRepository,

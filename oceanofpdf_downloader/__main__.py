@@ -12,7 +12,7 @@ from oceanofpdf_downloader.live_display import LiveDisplay
 from oceanofpdf_downloader.models import Book, BookState
 from oceanofpdf_downloader.repository import BookRepository
 from oceanofpdf_downloader.scraper import BookScraper
-from oceanofpdf_downloader.selection import select_books
+from oceanofpdf_downloader.selection import review_ml_selected, select_books
 
 
 def main() -> None:
@@ -264,8 +264,7 @@ def main() -> None:
                     repo.update_state(record.id, BookState.SCHEDULED)
                 if ml_selected:
                     logger.info("{} book(s) auto-scheduled by ML", len(ml_selected))
-                    for r in ml_selected:
-                        console.print(f"  [dim]ML[/dim] - {r.title} ({r.genre})")
+                    ml_selected = review_ml_selected(ml_selected, repo, console)
                     new_books = repo.get_books_by_state(BookState.NEW)
             else:
                 logger.warning("ml_autoselect enabled but no trained model — run with --train first")
