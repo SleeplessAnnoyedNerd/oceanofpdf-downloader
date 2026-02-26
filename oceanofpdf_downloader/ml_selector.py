@@ -75,3 +75,10 @@ class MLSelector:
     text = self._book_to_text(book)
     prob = self._pipeline.predict_proba([text])[0][1]
     return float(prob) >= self.config.ml_confidence_threshold
+
+  def score(self, book: Book) -> float:
+    """Return raw P(positive) without applying the threshold."""
+    if self._pipeline is None:
+      raise RuntimeError("Model not loaded — call load() or train() first")
+    text = self._book_to_text(book)
+    return float(self._pipeline.predict_proba([text])[0][1])

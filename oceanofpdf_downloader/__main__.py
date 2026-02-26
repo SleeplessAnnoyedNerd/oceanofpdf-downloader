@@ -25,6 +25,10 @@ def main() -> None:
         "--train", action="store_true",
         help="Train the ML model from existing DONE/SKIPPED/BLACKLISTED books and exit",
     )
+    parser.add_argument(
+        "--check-training", action="store_true",
+        help="Run the trained model against the database and print match statistics",
+    )
     args = parser.parse_args()
 
     if args.train:
@@ -36,6 +40,78 @@ def main() -> None:
             ml.train(repo)
         except ValueError as e:
             logger.error("Training failed: {}", e)
+        return
+
+    if args.check_training:
+        from rich.table import Table
+        from oceanofpdf_downloader.ml_selector import MLSelector
+        config = load_config(max_pages=1)
+        repo = BookRepository()
+        ml = MLSelector(config)
+        if not ml.load():
+            logger.error("No trained model found — run with --train first")
+            return
+        console = Console()
+        console.print(f"\n[bold]ML Model Check[/bold]")
+        console.print(f"  Model     : {config.ml_model_path}")
+        console.print(f"  Threshold : {config.ml_confidence_threshold}\n")
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("State", style="cyan")
+        table.add_column("Total", justify="right")
+        table.add_column("Would schedule", justify="right")
+        table.add_column("Would skip", justify="right")
+        table.add_column("Avg score", justify="right")
+        table.add_column("Min", justify="right")
+        table.add_column("Max", justify="right")
+
+        states_to_check = [
+            BookState.DONE,
+            BookState.SKIPPED,
+            BookState.BLACKLISTED,
+            BookState.NEW,
+        ]
+        training_tp = training_fn = training_fp = training_tn = 0
+
+        for state in states_to_check:
+            books = repo.get_books_by_state(state)
+            if not books:
+                continue
+            scores = [ml.score(Book(b.title, b.detail_url, b.language, b.genre)) for b in books]
+            scheduled = sum(1 for s in scores if s >= config.ml_confidence_threshold)
+            skipped = len(scores) - scheduled
+            avg = sum(scores) / len(scores)
+            pct_sched = scheduled / len(scores) * 100
+            pct_skip = skipped / len(scores) * 100
+            table.add_row(
+                state.value,
+                str(len(books)),
+                f"{scheduled} ({pct_sched:.0f}%)",
+                f"{skipped} ({pct_skip:.0f}%)",
+                f"{avg:.2f}",
+                f"{min(scores):.2f}",
+                f"{max(scores):.2f}",
+            )
+            if state == BookState.DONE:
+                training_tp += scheduled
+                training_fn += skipped
+            elif state in (BookState.SKIPPED, BookState.BLACKLISTED):
+                training_fp += scheduled
+                training_tn += skipped
+
+        console.print(table)
+
+        # Training-data summary
+        n_pos = training_tp + training_fn
+        n_neg = training_fp + training_tn
+        if n_pos:
+            recall = training_tp / n_pos * 100
+            console.print(f"[bold]Training data summary[/bold] ({n_pos} positive, {n_neg} negative):")
+            console.print(f"  Recall on DONE (correctly scheduled)         : {recall:.1f}%")
+        if n_neg:
+            fpr = training_fp / n_neg * 100
+            console.print(f"  False positive rate on SKIPPED/BLACKLISTED   : {fpr:.1f}%")
+        console.print()
         return
 
     if args.editor:
