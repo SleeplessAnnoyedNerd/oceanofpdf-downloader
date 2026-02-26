@@ -25,6 +25,8 @@ class Config:
         "~/.config/oceanofpdf-downloader/model.pkl"))
     ml_negative_examples_path: str = field(default_factory=lambda: os.path.expanduser(
         "~/.config/oceanofpdf-downloader/ml_negatives.txt"))
+    ml_positive_examples_path: str = field(default_factory=lambda: os.path.expanduser(
+        "~/.config/oceanofpdf-downloader/ml_positives.txt"))
     ml_sentence_transformer_model: str = "all-MiniLM-L6-v2"
 
 

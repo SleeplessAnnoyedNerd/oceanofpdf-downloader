@@ -73,26 +73,44 @@ class MLSelector:
     if extra_negative_titles:
       logger.info("Loaded {} extra negative example(s) from {}", len(extra_negative_titles), self.config.ml_negative_examples_path)
 
-    # Remove from positives any title that also appears in the negatives file.
-    # This happens when a book was wrongly auto-selected (DONE) but the user
-    # later added it to ml_negatives.txt to correct the training signal.
+    extra_positive_titles = self._load_positive_examples()
+    if extra_positive_titles:
+      logger.info("Loaded {} extra positive example(s) from {}", len(extra_positive_titles), self.config.ml_positive_examples_path)
+
+    # Negatives file overrides DONE books (wrongly auto-selected).
     if extra_negative_titles:
-      extra_titles_lower = {t.lower() for t in extra_negative_titles}
-      conflicting = [b for b in positives if b.title.lower() in extra_titles_lower]
+      neg_titles_lower = {t.lower() for t in extra_negative_titles}
+      conflicting = [b for b in positives if b.title.lower() in neg_titles_lower]
       if conflicting:
         logger.warning(
           "{} DONE book(s) overridden as negative by ml_negatives.txt: {}",
           len(conflicting), [b.title for b in conflicting],
         )
-        positives = [b for b in positives if b.title.lower() not in extra_titles_lower]
+        positives = [b for b in positives if b.title.lower() not in neg_titles_lower]
+
+    # Positives file overrides SKIPPED/BLACKLISTED books (wrongly dismissed).
+    if extra_positive_titles:
+      pos_titles_lower = {t.lower() for t in extra_positive_titles}
+      conflicting = [b for b in negatives if b.title.lower() in pos_titles_lower]
+      if conflicting:
+        logger.warning(
+          "{} SKIPPED/BLACKLISTED book(s) overridden as positive by ml_positives.txt: {}",
+          len(conflicting), [b.title for b in conflicting],
+        )
+        negatives = [b for b in negatives if b.title.lower() not in pos_titles_lower]
 
     extra_negative_texts = [f"{t} Unknown Unknown" for t in extra_negative_titles]
+    extra_positive_texts = [f"{t} Unknown Unknown" for t in extra_positive_titles]
     texts = (
       [self._book_to_text(b) for b in positives]
+      + extra_positive_texts
       + [self._book_to_text(b) for b in negatives]
       + extra_negative_texts
     )
-    labels = [1] * len(positives) + [0] * (len(negatives) + len(extra_negative_texts))
+    labels = (
+      [1] * (len(positives) + len(extra_positive_texts))
+      + [0] * (len(negatives) + len(extra_negative_texts))
+    )
 
     pipeline = Pipeline([
       ("embed", SentenceTransformerEmbedder(self.config.ml_sentence_transformer_model)),
@@ -125,7 +143,13 @@ class MLSelector:
 
   def _load_negative_examples(self) -> list[str]:
     """Returns raw title strings from the negatives file (comments and blank lines excluded)."""
-    path = self.config.ml_negative_examples_path
+    return self._load_examples_file(self.config.ml_negative_examples_path)
+
+  def _load_positive_examples(self) -> list[str]:
+    """Returns raw title strings from the positives file (comments and blank lines excluded)."""
+    return self._load_examples_file(self.config.ml_positive_examples_path)
+
+  def _load_examples_file(self, path: str) -> list[str]:
     if not path or not os.path.exists(path):
       return []
     titles = []
