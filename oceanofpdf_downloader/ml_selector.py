@@ -69,16 +69,30 @@ class MLSelector:
         f"Need at least {MIN_SAMPLES_PER_CLASS} SKIPPED/BLACKLISTED books, got {len(negatives)}"
       )
 
-    extra_negatives = self._load_negative_examples()
-    if extra_negatives:
-      logger.info("Loaded {} extra negative example(s) from {}", len(extra_negatives), self.config.ml_negative_examples_path)
+    extra_negative_titles = self._load_negative_examples()
+    if extra_negative_titles:
+      logger.info("Loaded {} extra negative example(s) from {}", len(extra_negative_titles), self.config.ml_negative_examples_path)
 
+    # Remove from positives any title that also appears in the negatives file.
+    # This happens when a book was wrongly auto-selected (DONE) but the user
+    # later added it to ml_negatives.txt to correct the training signal.
+    if extra_negative_titles:
+      extra_titles_lower = {t.lower() for t in extra_negative_titles}
+      conflicting = [b for b in positives if b.title.lower() in extra_titles_lower]
+      if conflicting:
+        logger.warning(
+          "{} DONE book(s) overridden as negative by ml_negatives.txt: {}",
+          len(conflicting), [b.title for b in conflicting],
+        )
+        positives = [b for b in positives if b.title.lower() not in extra_titles_lower]
+
+    extra_negative_texts = [f"{t} Unknown Unknown" for t in extra_negative_titles]
     texts = (
       [self._book_to_text(b) for b in positives]
       + [self._book_to_text(b) for b in negatives]
-      + extra_negatives
+      + extra_negative_texts
     )
-    labels = [1] * len(positives) + [0] * (len(negatives) + len(extra_negatives))
+    labels = [1] * len(positives) + [0] * (len(negatives) + len(extra_negative_texts))
 
     pipeline = Pipeline([
       ("embed", SentenceTransformerEmbedder(self.config.ml_sentence_transformer_model)),
@@ -110,6 +124,7 @@ class MLSelector:
     return True
 
   def _load_negative_examples(self) -> list[str]:
+    """Returns raw title strings from the negatives file (comments and blank lines excluded)."""
     path = self.config.ml_negative_examples_path
     if not path or not os.path.exists(path):
       return []
@@ -118,7 +133,7 @@ class MLSelector:
       for line in f:
         line = line.strip()
         if line and not line.startswith("#"):
-          titles.append(f"{line} Unknown Unknown")
+          titles.append(line)
     return titles
 
   def predict(self, book: Book) -> bool:
