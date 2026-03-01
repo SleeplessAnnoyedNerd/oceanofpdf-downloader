@@ -1,5 +1,6 @@
 from loguru import logger
 from rich.console import Console
+from rich.panel import Panel
 from rich.prompt import Prompt
 
 from oceanofpdf_downloader.display import display_book_records
@@ -98,6 +99,7 @@ def _review_ml_page(
     page_records: list[BookRecord],
     page_num: int,
     total_pages: int,
+    total_records: int,
     repo: BookRepository,
     console: Console,
 ) -> list[BookRecord]:
@@ -105,11 +107,19 @@ def _review_ml_page(
 
     Returns the records from this page that were blacklisted.
     """
+    page_label = f" \u2014 page {page_num}/{total_pages}" if total_pages > 1 else ""
+    console.print(Panel(
+        f"{total_records} book(s) auto-scheduled by ML{page_label}\n"
+        "Enter numbers below to [bold]PERMANENTLY BLACKLIST[/bold] them.",
+        title="\u26a0  BLACKLIST REVIEW",
+        border_style="red",
+        title_align="left",
+    ))
+
     display_book_records(page_records, console)
 
-    page_label = f" (page {page_num}/{total_pages})" if total_pages > 1 else ""
     answer = Prompt.ask(
-        f"Blacklist by number{page_label} (e.g. 1,3 or 2-4), or press Enter to keep all",
+        "Blacklist numbers (e.g. 1,3 or 2-4), or Enter to keep all",
         default="",
         console=console,
     )
@@ -134,15 +144,13 @@ def review_ml_selected(
 
     Returns the records that remain SCHEDULED.
     """
-    console.print(f"\n[bold cyan]{len(records)} book(s) auto-scheduled by ML:[/bold cyan]")
-
     total_pages = (len(records) + PAGE_SIZE - 1) // PAGE_SIZE
     blacklisted_ids: set[int] = set()
 
     for page_num in range(1, total_pages + 1):
         start = (page_num - 1) * PAGE_SIZE
         page_records = records[start:start + PAGE_SIZE]
-        for r in _review_ml_page(page_records, page_num, total_pages, repo, console):
+        for r in _review_ml_page(page_records, page_num, total_pages, len(records), repo, console):
             blacklisted_ids.add(r.id)
 
     return [r for r in records if r.id not in blacklisted_ids]
