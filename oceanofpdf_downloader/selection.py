@@ -94,34 +94,58 @@ def _select_page(
     return None if quit_requested else scheduled
 
 
+def _review_ml_page(
+    page_records: list[BookRecord],
+    page_num: int,
+    total_pages: int,
+    repo: BookRepository,
+    console: Console,
+) -> list[BookRecord]:
+    """Display one page of ML-selected books and prompt for books to blacklist.
+
+    Returns the records from this page that were blacklisted.
+    """
+    display_book_records(page_records, console)
+
+    page_label = f" (page {page_num}/{total_pages})" if total_pages > 1 else ""
+    answer = Prompt.ask(
+        f"Blacklist by number{page_label} (e.g. 1,3 or 2-4), or press Enter to keep all",
+        default="",
+        console=console,
+    )
+
+    to_blacklist = parse_selection(answer, len(page_records))
+    blacklisted = []
+    for i, record in enumerate(page_records, 1):
+        if i in to_blacklist:
+            repo.update_state(record.id, BookState.BLACKLISTED)
+            logger.info("Blacklisted after ML review: {}", record.title)
+            blacklisted.append(record)
+
+    return blacklisted
+
+
 def review_ml_selected(
     records: list[BookRecord],
     repo: BookRepository,
     console: Console,
 ) -> list[BookRecord]:
-    """Show ML-selected books and let the user blacklist unwanted ones by number.
+    """Show ML-selected books paged and let the user blacklist unwanted ones by number.
 
     Returns the records that remain SCHEDULED.
     """
     console.print(f"\n[bold cyan]{len(records)} book(s) auto-scheduled by ML:[/bold cyan]")
-    display_book_records(records, console)
 
-    answer = Prompt.ask(
-        "Blacklist by number (e.g. 1,3 or 2-4), or press Enter to keep all",
-        default="",
-        console=console,
-    )
+    total_pages = (len(records) + PAGE_SIZE - 1) // PAGE_SIZE
+    blacklisted_ids: set[int] = set()
 
-    to_blacklist = parse_selection(answer, len(records))
-    kept = []
-    for i, record in enumerate(records, 1):
-        if i in to_blacklist:
-            repo.update_state(record.id, BookState.BLACKLISTED)
-            logger.info("Blacklisted after ML review: {}", record.title)
-        else:
-            kept.append(record)
+    for page_num in range(1, total_pages + 1):
+        start = (page_num - 1) * PAGE_SIZE
+        page_records = records[start:start + PAGE_SIZE]
+        for r in _review_ml_page(page_records, page_num, total_pages, repo, console):
+            blacklisted_ids.add(r.id)
 
-    return kept
+    return [r for r in records if r.id not in blacklisted_ids]
 
 
 def select_books(
