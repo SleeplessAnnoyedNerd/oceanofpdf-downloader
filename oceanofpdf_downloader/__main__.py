@@ -176,10 +176,10 @@ def main() -> None:
             start_page = 0
 
         try:
-            max_pages = int(input("How many pages to scrape? [15]: ").strip() or "15")
+            max_pages = int(input("How many pages to scrape? [25]: ").strip() or "25")
         except ValueError:
-            logger.error("Invalid number, using 15")
-            max_pages = 15
+            logger.error("Invalid number, using 25")
+            max_pages = 25
 
         if max_pages == 0:
             if not pending:

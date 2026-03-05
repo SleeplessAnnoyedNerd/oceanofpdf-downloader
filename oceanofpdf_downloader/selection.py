@@ -1,7 +1,7 @@
 from loguru import logger
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Prompt
+from rich.prompt import Confirm, Prompt
 
 from oceanofpdf_downloader.display import display_book_records
 from oceanofpdf_downloader.models import BookRecord, BookState
@@ -108,23 +108,37 @@ def _review_ml_page(
     Returns the records from this page that were blacklisted.
     """
     page_label = f" \u2014 page {page_num}/{total_pages}" if total_pages > 1 else ""
-    console.print(Panel(
-        f"{total_records} book(s) auto-scheduled by ML{page_label}\n"
-        "Enter numbers below to [bold]PERMANENTLY BLACKLIST[/bold] them.",
-        title="\u26a0  BLACKLIST REVIEW",
-        border_style="red",
-        title_align="left",
-    ))
 
-    display_book_records(page_records, console)
+    while True:
+        console.print(Panel(
+            f"{total_records} book(s) auto-scheduled by ML{page_label}\n"
+            "Enter numbers below to [bold]PERMANENTLY BLACKLIST[/bold] them.",
+            title="\u26a0  BLACKLIST REVIEW",
+            border_style="red",
+            title_align="left",
+        ))
 
-    answer = Prompt.ask(
-        "Blacklist numbers (e.g. 1,3 or 2-4), or Enter to keep all",
-        default="",
-        console=console,
-    )
+        display_book_records(page_records, console)
 
-    to_blacklist = parse_selection(answer, len(page_records))
+        answer = Prompt.ask(
+            "Blacklist numbers (e.g. 1,3 or 2-4), or Enter to keep all",
+            default="",
+            console=console,
+        )
+
+        to_blacklist = parse_selection(answer, len(page_records))
+
+        if not to_blacklist:
+            return []
+
+        confirmed = Confirm.ask(
+            f"Are you sure you want to BLACKLIST {len(to_blacklist)} book(s)?",
+            default=False,
+            console=console,
+        )
+        if confirmed:
+            break
+
     blacklisted = []
     for i, record in enumerate(page_records, 1):
         if i in to_blacklist:

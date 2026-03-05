@@ -9,6 +9,7 @@ class BookState(str, Enum):
     DONE = "done"
     RETRY = "retry"
     BLACKLISTED = "blacklisted"
+    INVALID = "invalid"  # for this accident @ 2026-03-01 :(
 
 
 @dataclass
