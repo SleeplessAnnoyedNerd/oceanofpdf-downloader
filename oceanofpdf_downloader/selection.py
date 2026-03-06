@@ -122,8 +122,9 @@ def _review_ml_page(
     removed: list[BookRecord] = []
 
     # --- Skip prompt ---
+    console.print()
     skip_answer = Prompt.ask(
-        "Books to SKIP (e.g. 1,3 or 2-4), or Enter to keep all",
+        "[red]Books to **SKIP** (e.g. 1,3 or 2-4), or Enter to keep all[/red]",
         default="",
         console=console,
     )
