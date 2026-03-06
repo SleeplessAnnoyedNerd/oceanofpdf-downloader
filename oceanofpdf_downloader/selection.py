@@ -103,50 +103,69 @@ def _review_ml_page(
     repo: BookRepository,
     console: Console,
 ) -> list[BookRecord]:
-    """Display one page of ML-selected books and prompt for books to blacklist.
+    """Display one page of ML-selected books and prompt for books to skip or blacklist.
 
-    Returns the records from this page that were blacklisted.
+    Returns the records from this page that were removed from SCHEDULED (skipped or blacklisted).
     """
     page_label = f" \u2014 page {page_num}/{total_pages}" if total_pages > 1 else ""
 
-    while True:
-        console.print(Panel(
-            f"{total_records} book(s) auto-scheduled by ML{page_label}\n"
-            "Enter numbers below to [bold]PERMANENTLY BLACKLIST[/bold] them.",
-            title="\u26a0  BLACKLIST REVIEW",
-            border_style="red",
-            title_align="left",
-        ))
+    console.print(Panel(
+        f"{total_records} book(s) auto-scheduled by ML{page_label}\n"
+        "Enter numbers to [bold]SKIP[/bold] (one-time) or [bold]BLACKLIST[/bold] (permanent).",
+        title="\u26a0  ML REVIEW",
+        border_style="red",
+        title_align="left",
+    ))
 
-        display_book_records(page_records, console)
+    display_book_records(page_records, console)
 
-        answer = Prompt.ask(
-            "Blacklist numbers (e.g. 1,3 or 2-4), or Enter to keep all",
-            default="",
+    removed: list[BookRecord] = []
+
+    # --- Skip prompt ---
+    skip_answer = Prompt.ask(
+        "Books to SKIP (e.g. 1,3 or 2-4), or Enter to keep all",
+        default="",
+        console=console,
+    )
+    to_skip = parse_selection(skip_answer, len(page_records))
+    if to_skip:
+        confirmed = Confirm.ask(
+            f"Skip {len(to_skip)} book(s)? (not downloaded this time, not permanent)",
+            default=False,
             console=console,
         )
+        if confirmed:
+            for i, record in enumerate(page_records, 1):
+                if i in to_skip:
+                    repo.update_state(record.id, BookState.SKIPPED)
+                    logger.info("Skipped after ML review: {}", record.title)
+                    removed.append(record)
 
-        to_blacklist = parse_selection(answer, len(page_records))
-
-        if not to_blacklist:
-            return []
-
+    # --- Blacklist prompt ---
+    already_removed = {r.id for r in removed}
+    blacklist_answer = Prompt.ask(
+        "Books to BLACKLIST permanently (e.g. 1,3 or 2-4), or Enter to keep all",
+        default="",
+        console=console,
+    )
+    to_blacklist = {
+        i for i in parse_selection(blacklist_answer, len(page_records))
+        if page_records[i - 1].id not in already_removed
+    }
+    if to_blacklist:
         confirmed = Confirm.ask(
             f"Are you sure you want to BLACKLIST {len(to_blacklist)} book(s)?",
             default=False,
             console=console,
         )
         if confirmed:
-            break
+            for i, record in enumerate(page_records, 1):
+                if i in to_blacklist:
+                    repo.update_state(record.id, BookState.BLACKLISTED)
+                    logger.info("Blacklisted after ML review: {}", record.title)
+                    removed.append(record)
 
-    blacklisted = []
-    for i, record in enumerate(page_records, 1):
-        if i in to_blacklist:
-            repo.update_state(record.id, BookState.BLACKLISTED)
-            logger.info("Blacklisted after ML review: {}", record.title)
-            blacklisted.append(record)
-
-    return blacklisted
+    return removed
 
 
 def review_ml_selected(
@@ -159,15 +178,15 @@ def review_ml_selected(
     Returns the records that remain SCHEDULED.
     """
     total_pages = (len(records) + PAGE_SIZE - 1) // PAGE_SIZE
-    blacklisted_ids: set[int] = set()
+    removed_ids: set[int] = set()
 
     for page_num in range(1, total_pages + 1):
         start = (page_num - 1) * PAGE_SIZE
         page_records = records[start:start + PAGE_SIZE]
         for r in _review_ml_page(page_records, page_num, total_pages, len(records), repo, console):
-            blacklisted_ids.add(r.id)
+            removed_ids.add(r.id)
 
-    return [r for r in records if r.id not in blacklisted_ids]
+    return [r for r in records if r.id not in removed_ids]
 
 
 def select_books(
